@@ -1,47 +1,39 @@
-// src/components/Pagination.tsx
-import React from "react";
-import { FaArrowLeft, FaArrowRight } from "react-icons/fa"; // Import arrow icons from react-icons
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
 
-interface PaginationProps {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (newPage: number) => void;
-}
-
-const Pagination: React.FC<PaginationProps> = ({
-  currentPage,
-  totalPages,
-  onPageChange,
-}) => {
+export default function BlogPagination() {
   return (
-    <div className="mt-8 flex justify-center items-center space-x-4">
-      <button
-        disabled={currentPage === 1}
-        onClick={() => onPageChange(currentPage - 1)}
-        className={`px-4 py-2 bg-purple-700 text-white rounded ${
-          currentPage === 1
-            ? "opacity-50 cursor-not-allowed"
-            : "hover:bg-purple-600"
-        }`}
-      >
-        <FaArrowLeft /> {/* Previous button icon */}
-      </button>
-      <span className="text-white">
-        Page {currentPage} of {totalPages}
-      </span>
-      <button
-        disabled={currentPage === totalPages || currentPage > totalPages}
-        onClick={() => onPageChange(currentPage + 1)}
-        className={`px-4 py-2 bg-purple-700 text-white rounded ${
-          currentPage === totalPages || currentPage > totalPages
-            ? "opacity-50 cursor-not-allowed"
-            : "hover:bg-purple-600"
-        }`}
-      >
-        <FaArrowRight /> {/* Next button icon */}
-      </button>
-    </div>
-  );
-};
+    <Pagination>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious href="#" />
+        </PaginationItem>
 
-export default Pagination;
+        <PaginationItem>
+          <PaginationLink href="#" isActive>
+            1
+          </PaginationLink>
+        </PaginationItem>
+
+        <PaginationItem>
+          <PaginationLink href="#">2</PaginationLink>
+        </PaginationItem>
+
+        <PaginationItem>
+          <PaginationEllipsis />
+        </PaginationItem>
+
+        <PaginationItem>
+          <PaginationNext href="#" />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}

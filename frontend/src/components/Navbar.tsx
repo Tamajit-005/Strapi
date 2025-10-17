@@ -1,88 +1,128 @@
-// src/components/Navbar.tsx
 "use client";
+
 import React, { useState } from "react";
 import Link from "next/link";
-import { FaPen, FaSearch, FaTimes } from "react-icons/fa";
-import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import { FaSearch, FaTimes, FaBars } from "react-icons/fa";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Navbar = () => {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const searchParams = useSearchParams();
-  const pathname = usePathname(); // Get the current route path
-  const { replace } = useRouter(); // Next js function to replace routes
+  const router = useRouter();
 
-  // Handle search query submission
-  const handleSearchSubmit = () => {
-    const params = new URLSearchParams(searchParams);
-    if (searchQuery) params.set("search", searchQuery);
-    else params.delete("search");
-    // Always routes with the search query
-    replace(`/?${params.toString()}`);
-    setSearchOpen(false); // Close search bar after submission
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?query=${encodeURIComponent(searchQuery)}`);
+    }
+    setSearchOpen(false);
+    setMenuOpen(false);
   };
 
   return (
-    <div className="max-w-screen-lg mx-auto sticky top-0 bg-inherit py-3 sm:py-6 z-50  ">
-      <nav className="flex justify-between items-center mb-2 p-4 ">
-        <div className="flex items-center gap-4">
-          <Link href="/">
-            <h1 className="font-bold text-xl text-purple-600 font-jet-brains">
-              DEV.BLOG
-            </h1>
+    <header className="bg-[#0f111a] text-white sticky top-0 z-50 shadow-md">
+      <div className="max-w-screen-lg mx-auto flex items-center justify-between p-4">
+        {/* Logo */}
+        <Link href="/">
+          <h1 className="fruktur-regular text-3xl md:text-4xl text-purple-600 font-bold tracking-wide hover:text-purple-400 transition-all">
+            TOM.BLOG
+          </h1>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-6 font-medium">
+          <Link href="/" className="hover:text-purple-400 transition-colors">
+            Blogs
           </Link>
           <button
             onClick={() => setSearchOpen((prev) => !prev)}
-            className="text-xl text-white hover:text-purple-400 transition-colors"
+            className="text-xl hover:text-purple-400 transition-colors"
+            aria-label="Open Search"
           >
-            {searchOpen ? <FaTimes /> : <FaSearch />}
+            <FaSearch />
           </button>
+        </nav>
 
-          {/* Search Box (toggles visibility) */}
-          {searchOpen && (
-            <div className="ml-4 flex items-center gap-2">
+        {/* Mobile Hamburger */}
+        <button
+          className="md:hidden text-xl"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          aria-label="Toggle Menu"
+        >
+          {menuOpen ? <FaTimes /> : <FaBars />}
+        </button>
+      </div>
+
+      {/* Mobile Menu Animation */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            key="mobile-menu"
+            initial={{ height: 0, opacity: 0, y: -10 }}
+            animate={{ height: "auto", opacity: 1, y: 0 }}
+            exit={{ height: 0, opacity: 0, y: -10 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="md:hidden bg-[#0f111a] px-4 pb-4 flex flex-col gap-3 overflow-hidden"
+          >
+            <Link
+              href="/"
+              className="hover:text-purple-400 transition-colors"
+              onClick={() => setMenuOpen(false)}
+            >
+              Blogs
+            </Link>
+            <button
+              onClick={() => setSearchOpen((prev) => !prev)}
+              className="flex items-center gap-1 hover:text-purple-400 transition-colors"
+            >
+              <FaSearch /> Search
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Search Bar Animation */}
+      <AnimatePresence>
+        {searchOpen && (
+          <motion.div
+            key="search-bar"
+            initial={{ opacity: 0, y: -15, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: -15, height: 0 }}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+            className="max-w-screen-lg mx-auto px-4 overflow-hidden mt-4"
+          >
+            <form
+              onSubmit={handleSearchSubmit}
+              className="flex gap-2 items-center"
+            >
               <input
-                type="search"
+                type="text"
+                placeholder="Search posts..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search posts..."
-                defaultValue={searchParams.get("search")?.toString()}
-                className="bg-gray-800 appearance-none placeholder:text-sm placeholder:font-normal text-sm text-white placeholder-gray-400 border-b-2 border-purple-500 focus:border-purple-300 outline-none px-2 py-1 rounded-md"
+                className="flex-1 p-2 rounded-md bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               <button
-                onClick={handleSearchSubmit}
-                className="bg-purple-600 text-sm hover:bg-purple-500 text-white px-2 py-1 rounded-md transition-colors"
+                type="submit"
+                className="bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded-md transition-colors"
               >
                 Search
               </button>
-            </div>
-          )}
-        </div>
-
-        <ul className="flex items-center gap-6 font-medium transition-colors font-jet-brains">
-          <li
-            className={
-              pathname === "/"
-                ? "text-purple-400"
-                : "text-white hover:text-purple-400"
-            }
-          >
-            <Link href="/">Blogs</Link>
-          </li>
-          <li
-            className={
-              pathname === "/write"
-                ? "text-purple-400"
-                : "text-white hover:text-purple-400"
-            }
-          >
-            <Link href="/write">
-              <FaPen className="hover:text-purple-400" />
-            </Link>
-          </li>
-        </ul>
-      </nav>
-    </div>
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                className="text-white hover:text-purple-400 px-2"
+              >
+                <FaTimes />
+              </button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </header>
   );
 };
 

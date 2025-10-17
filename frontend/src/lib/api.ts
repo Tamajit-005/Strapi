@@ -1,6 +1,7 @@
 // lib/api.ts
 import axios from "axios";
 import { UserBlogPostData } from "./types";
+import type { BlogPost } from "./types";
 
 export const api: any = axios.create({
   baseURL: process.env.NEXT_PUBLIC_STRAPI_URL,
@@ -30,16 +31,30 @@ export const getAllPosts = async (page = 1, searchQuery = "") => {
 // ✅ Fetch single post by slug
 export const getPostBySlug = async (slug: string) => {
   try {
-    const response = await api.get(
-      `/api/blogs?filters[slug][$eq]=${encodeURIComponent(slug)}&populate=*`
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/blogs?filters[slug][$eq]=${slug}&populate=*`
     );
 
-    if (response.data.data?.length > 0) {
-      return response.data.data[0];
+    const data = await response.json();
+
+    if (data.data.length > 0) {
+      const item = data.data[0];
+      return {
+        id: item.id,
+        slug: item.slug,
+        title: item.title,
+        description: item.description,
+        content: item.content,
+        cover: item.cover,
+        categories: item.category || [],
+        createdAt: item.createdAt,
+        author: item.author,
+      };
     }
+
     throw new Error("Post not found");
-  } catch (error) {
-    console.error("Error fetching post:", error);
+  } catch (err) {
+    console.error("Error fetching post:", err);
     throw new Error("Server error");
   }
 };
@@ -83,3 +98,30 @@ export const createPost = async (postData: UserBlogPostData) => {
     throw new Error("Failed to create post");
   }
 };
+
+
+// ✅ Search posts by title
+export async function getBlogsBySearch(query: string) {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/blogs?filters[title][$containsi]=${encodeURIComponent(
+        query
+      )}&populate=*`
+    );
+    const data = await res.json();
+
+    return data.data.map((item: any) => ({
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      slug: item.slug,
+      cover: item.cover,
+      createdAt: item.createdAt,
+      categories: item.category || [],
+      author: item.author || null,
+    }));
+  } catch (err) {
+    console.error("Error fetching blogs by search:", err);
+    return [];
+  }
+}

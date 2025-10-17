@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { getPostBySlug } from "../../../lib/api";
 import { useRouter } from "next/navigation";
 import type { BlogPost } from "@/lib/types";
@@ -8,7 +8,6 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { FaClipboard } from "react-icons/fa";
 import Loader from "@/components/Loader";
 import moment from "moment";
@@ -24,8 +23,8 @@ const handleCopyCode = async (code: string) => {
   }
 };
 
-const BlogPostPage = ({ params }: { params: { slug: string } }) => {
-  const { slug } = params;
+const BlogPostPage = (props: { params: Promise<{ slug: string }> }) => {
+  const { slug } = use(props.params);
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,10 +55,11 @@ const BlogPostPage = ({ params }: { params: { slug: string } }) => {
     );
 
   if (error)
-    return <p className="max-w-screen-md mx-auto text-red-500">Error: {error}</p>;
+    return (
+      <p className="max-w-screen-md mx-auto text-red-500">Error: {error}</p>
+    );
 
-  if (!post)
-    return <p className="max-w-screen-md mx-auto">No post found.</p>;
+  if (!post) return <p className="max-w-screen-md mx-auto">No post found.</p>;
 
   return (
     <div className="max-w-screen-md mx-auto p-4">
@@ -99,45 +99,44 @@ const BlogPostPage = ({ params }: { params: { slug: string } }) => {
         {post.description}
       </p>
 
-      <Markdown
-        {...({
-          className: "leading-[40px] max-w-screen-lg prose prose-invert",
-        } as any)}
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw]}
-        components={{
-          code({ inline, className, children, ...props }: any) {
-            const match = /language-(\w+)/.exec(className || "");
-            const codeString = String(children).replace(/\n$/, "");
+      <div className="leading-[40px] max-w-screen-lg prose prose-invert">
+        <Markdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
+          components={{
+            code({ inline, className, children, ...props }: any) {
+              const match = /language-(\w+)/.exec(className || "");
+              const codeString = String(children).replace(/\n$/, "");
 
-            return !inline && match ? (
-              <div className="relative">
-                <button
-                  onClick={() => handleCopyCode(codeString)}
-                  className="absolute top-2 right-2 bg-gray-700 text-white p-1 rounded-md hover:bg-gray-600"
-                  title="Copy to clipboard"
-                >
-                  <FaClipboard color="#fff" />
-                </button>
-                <SyntaxHighlighter
-                  style={dracula}
-                  PreTag="div"
-                  language={match[1]}
-                  {...props}
-                >
-                  {codeString}
-                </SyntaxHighlighter>
-              </div>
-            ) : (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            );
-          },
-        }}
-      >
-        {post.content}
-      </Markdown>
+              return !inline && match ? (
+                <div className="relative">
+                  <button
+                    onClick={() => handleCopyCode(codeString)}
+                    className="absolute top-2 right-2 bg-gray-700 text-white p-1 rounded-md hover:bg-gray-600"
+                    title="Copy to clipboard"
+                  >
+                    <FaClipboard color="#fff" />
+                  </button>
+                  <SyntaxHighlighter
+                    // style={dracula}
+                    PreTag="div"
+                    language={match[1]}
+                    {...props}
+                  >
+                    {codeString}
+                  </SyntaxHighlighter>
+                </div>
+              ) : (
+                <code className={className} {...props}>
+                  {children}
+                </code>
+              );
+            },
+          }}
+        >
+          {post.content}
+        </Markdown>
+      </div>
 
       <button
         onClick={() => router.back()}
