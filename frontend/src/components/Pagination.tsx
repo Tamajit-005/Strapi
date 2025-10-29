@@ -5,33 +5,64 @@ import {
   PaginationLink,
   PaginationPrevious,
   PaginationNext,
-  PaginationEllipsis,
 } from "@/components/ui/pagination";
 
-export default function BlogPagination() {
+interface BlogPaginationProps {
+  currentPage: number;
+  totalPages: number;
+  basePath?: string;
+  onPageChange?: (page: number) => void;
+}
+
+export default function BlogPagination({
+  currentPage,
+  totalPages,
+  basePath,
+  onPageChange,
+}: BlogPaginationProps) {
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+
   return (
     <Pagination>
       <PaginationContent>
+        {/* Previous button */}
         <PaginationItem>
-          <PaginationPrevious href="#" />
+          <PaginationPrevious
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              if (onPageChange && currentPage > 1)
+                onPageChange(currentPage - 1);
+            }}
+          />
         </PaginationItem>
 
-        <PaginationItem>
-          <PaginationLink href="#" isActive>
-            1
-          </PaginationLink>
-        </PaginationItem>
+        {/* Page numbers */}
+        {pages.map((page) => (
+          <PaginationItem key={page}>
+            <PaginationLink
+              href="#"
+              isActive={page === currentPage}
+              onClick={(e) => {
+                e.preventDefault();
+                if (onPageChange) onPageChange(page);
+              }}
+            >
+              {page}
+            </PaginationLink>
+          </PaginationItem>
+        ))}
 
+        {/* Next button */}
         <PaginationItem>
-          <PaginationLink href="#">2</PaginationLink>
-        </PaginationItem>
-
-        <PaginationItem>
-          <PaginationEllipsis />
-        </PaginationItem>
-
-        <PaginationItem>
-          <PaginationNext href="#" />
+          <PaginationNext
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              if (onPageChange && currentPage < totalPages)
+                onPageChange(currentPage + 1);
+            }}
+          />
         </PaginationItem>
       </PaginationContent>
     </Pagination>

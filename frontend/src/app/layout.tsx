@@ -10,7 +10,7 @@ const geistSans = { variable: "--font-geist-sans" };
 const geistMono = { variable: "--font-geist-mono" };
 
 export const metadata: Metadata = {
-  title: "TOM.BLOG",
+  title: "POST PALETTE",
   description:
     "Your go-to resource for all things Strapi—explore best practices, tips, and community insights to elevate your projects",
 };

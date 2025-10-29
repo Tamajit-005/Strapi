@@ -63,10 +63,10 @@ export function PaginationLink({
     <Link
       href={href}
       className={cn(
-        "px-4 py-2 rounded-md text-sm font-medium transition-colors border border-transparent",
+        "px-4 py-2 rounded-md text-sm font-medium transition-colors",
         isActive
-          ? "bg-purple-700 text-white border-purple-600"
-          : "bg-purple-800 text-white hover:bg-purple-700",
+          ? "bg-teal-500 text-gray-900 border border-teal-400" // Active state
+          : "text-gray-400 hover:text-teal-400 hover:bg-gray-800", // Inactive state
         className
       )}
       {...props}
@@ -86,7 +86,10 @@ export function PaginationPrevious({
   return (
     <PaginationLink
       href={href}
-      className={cn("flex items-center gap-1 px-3", className)}
+      className={cn(
+        "flex items-center gap-1 px-3 text-teal-400 hover:bg-teal-900/30",
+        className
+      )}
       {...props}
     >
       <ChevronLeftIcon className="w-4 h-4" />
@@ -105,7 +108,10 @@ export function PaginationNext({
   return (
     <PaginationLink
       href={href}
-      className={cn("flex items-center gap-1 px-3", className)}
+      className={cn(
+        "flex items-center gap-1 px-3 text-teal-400 hover:bg-teal-900/30",
+        className
+      )}
       {...props}
     >
       <span className="hidden sm:inline">Next</span>
@@ -122,7 +128,7 @@ export function PaginationEllipsis({
     <span
       aria-hidden
       className={cn(
-        "flex w-9 h-9 items-center justify-center text-black",
+        "flex w-9 h-9 items-center justify-center text-gray-400",
         className
       )}
       {...props}
