@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import Head from "next/head";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
@@ -43,8 +44,9 @@ export default function RootLayout({
         <main className="flex-1">{children}</main>
         <Footer />
         <Toaster />
-        {/* Vercel Analytics should be last in body */}
+        {/* Analytics and SpeedInsights at the end of body */}
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
