@@ -18,7 +18,7 @@ export default function BlogListClient() {
 
   const pageParam = searchParams.get("page");
   const currentPage = pageParam ? parseInt(pageParam) : 1;
-  const pageSize = parseInt(process.env.NEXT_PUBLIC_PAGE_LIMIT || "6");
+  const pageSize = parseInt(process.env.NEXT_PUBLIC_PAGE_LIMIT || "7");
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -99,7 +99,11 @@ export default function BlogListClient() {
           <div className="relative w-full h-[500px] overflow-hidden cursor-pointer group">
             {featuredPost.cover?.url && (
               <img
-                src={`${process.env.NEXT_PUBLIC_STRAPI_URL}${featuredPost.cover.url}`}
+                src={
+                  featuredPost.cover.url.startsWith("http")
+                    ? featuredPost.cover.url
+                    : `${process.env.NEXT_PUBLIC_STRAPI_URL}${featuredPost.cover.url}`
+                }
                 alt={featuredPost.title}
                 className="absolute inset-0 w-full h-full object-cover brightness-50 group-hover:scale-105 transition-transform duration-500"
               />

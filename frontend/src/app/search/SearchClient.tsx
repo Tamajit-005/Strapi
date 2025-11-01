@@ -107,7 +107,11 @@ export default function SearchClient() {
                   {post.cover?.url ? (
                     <div className="relative h-40 w-full">
                       <img
-                        src={`${process.env.NEXT_PUBLIC_STRAPI_URL}${post.cover.url}`}
+                        src={
+                          post.cover.url.startsWith("http")
+                            ? post.cover.url
+                            : `${process.env.NEXT_PUBLIC_STRAPI_URL}${post.cover.url}`
+                        }
                         alt={post.title}
                         className="w-full h-full object-cover"
                       />
