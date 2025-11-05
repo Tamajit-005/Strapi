@@ -15,7 +15,7 @@ const Navbar = () => {
   const router = useRouter();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Use exact slugs and documentIds from your Strapi output
+  // Category data as per your backend keys
   const categories = [
     { label: "Gaming", slug: "gaming", documentId: "zxhivhcsvvo4bwsv8lrijpop" },
     { label: "Tech", slug: "tech", documentId: "icchgazsjbhc07ogtzksx6dq" },
@@ -56,6 +56,15 @@ const Navbar = () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
+
+  // Prevent body scrolling behind open overlays
+  useEffect(() => {
+    if (menuOpen || searchOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [menuOpen, searchOpen]);
 
   return (
     <header className="bg-[#0f111a] text-white sticky top-0 z-50 shadow-md">
@@ -152,17 +161,26 @@ const Navbar = () => {
         </button>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
             key="mobile-menu"
-            initial={{ height: 0, opacity: 0, y: -10 }}
-            animate={{ height: "auto", opacity: 1, y: 0 }}
-            exit={{ height: 0, opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="md:hidden bg-[#0f111a] px-4 pb-4 flex flex-col gap-3 overflow-hidden"
+            className="fixed top-0 left-0 w-full h-full bg-[#0f111a] px-4 pb-4 z-99 flex flex-col gap-3 overflow-y-auto md:hidden"
           >
+            {/* Close button */}
+            <button
+              className="self-end mt-4 text-2xl text-white hover:text-teal-400 transition"
+              onClick={() => setMenuOpen(false)}
+              aria-label="Close Menu"
+            >
+              <FaTimes />
+            </button>
+
             <div className="flex flex-col gap-1 mt-2">
               <span className="text-gray-400 text-sm uppercase">
                 Categories
@@ -171,7 +189,7 @@ const Navbar = () => {
                 <Link
                   key={c.documentId}
                   href={`/category/${encodeURIComponent(c.documentId)}`}
-                  className="hover:text-teal-400 transition-colors pl-2"
+                  className="hover:text-teal-400 transition-colors pl-2 py-2 text-lg"
                   onClick={() => setMenuOpen(false)}
                 >
                   {c.label}
@@ -180,8 +198,11 @@ const Navbar = () => {
             </div>
 
             <button
-              onClick={() => setSearchOpen((prev) => !prev)}
-              className="flex items-center gap-1 hover:text-teal-400 transition-colors mt-2"
+              onClick={() => {
+                setSearchOpen(true);
+                setMenuOpen(false);
+              }}
+              className="flex items-center gap-2 hover:text-teal-400 transition-colors mt-4 text-lg"
             >
               <FaSearch /> Search
             </button>
@@ -189,39 +210,44 @@ const Navbar = () => {
         )}
       </AnimatePresence>
 
-      {/* Search Bar */}
+      {/* Search modal */}
       <AnimatePresence>
         {searchOpen && (
           <motion.div
-            key="search-bar"
-            initial={{ opacity: 0, y: -15, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: "auto" }}
-            exit={{ opacity: 0, y: -15, height: 0 }}
-            transition={{ duration: 0.35, ease: "easeInOut" }}
-            className="max-w-5xl mx-auto px-4 overflow-hidden mt-4"
+            key="search-modal"
+            initial={{ opacity: 0, y: -25 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -25 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 backdrop-blur-sm"
           >
             <form
               onSubmit={handleSearchSubmit}
-              className="flex gap-2 items-center"
+              className="relative w-full max-w-md px-6"
             >
               <input
                 type="text"
                 placeholder="Search posts..."
                 value={searchQuery}
+                autoFocus
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 p-2 rounded-md bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full py-4 pl-5 pr-14 rounded-full bg-gray-800 text-xl text-white shadow-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
               />
+              {/* Submit search */}
               <button
                 type="submit"
-                className="bg-teal-600 hover:bg-teal-500 px-4 py-2 rounded-md transition-colors"
+                className="absolute right-9 top-1/2 -translate-y-1/2 text-teal-400 text-2xl hover:text-teal-300 transition"
+                aria-label="Submit Search"
               >
-                Search
+                <FaSearch />
               </button>
+              {/* Close search */}
               <button
                 type="button"
                 onClick={() => setSearchOpen(false)}
-                className="text-white hover:text-teal-400 px-2"
+                className="absolute -top-10 right-2 text-white text-2xl hover:text-red-500 transition"
                 aria-label="Close Search"
+                tabIndex={0}
               >
                 <FaTimes />
               </button>
