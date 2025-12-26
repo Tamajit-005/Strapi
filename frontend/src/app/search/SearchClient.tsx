@@ -7,6 +7,7 @@ import { getAllPosts } from "@/lib/api";
 import type { BlogPost } from "@/lib/types";
 import Loader from "@/components/Loader";
 import BlogPagination from "@/components/Pagination";
+import { motion } from "framer-motion";
 
 export default function SearchClient() {
   const searchParams = useSearchParams();
@@ -28,7 +29,6 @@ export default function SearchClient() {
         const posts = await getAllPosts();
         setAllPosts(posts);
       } catch (err) {
-        console.error(err);
         setError("Error searching blogs.");
       } finally {
         setLoading(false);
@@ -70,20 +70,35 @@ export default function SearchClient() {
 
   if (loading)
     return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-slate-950">
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="w-full min-h-screen flex items-center justify-center bg-slate-950"
+      >
         <Loader />
-      </div>
+      </motion.div>
     );
 
   if (error)
     return (
-      <div className="bg-slate-950 min-h-screen flex items-center justify-center">
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="bg-slate-950 min-h-screen flex items-center justify-center"
+      >
         <p className="text-red-500 text-center">{error}</p>
-      </div>
+      </motion.div>
     );
 
   return (
-    <div className="w-full bg-slate-950 min-h-screen text-gray-200">
+    <motion.div
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="w-full bg-slate-950 min-h-screen text-gray-200"
+    >
       <div className="max-w-5xl mx-auto p-6">
         <h1 className="text-4xl font-bold mb-6 text-teal-500 text-center">
           Search Results
@@ -123,7 +138,7 @@ export default function SearchClient() {
                   )}
 
                   <div className="p-5">
-                    <h2 className="text-lg font-semibold text-white line-clamp-2 mb-2 group-hover:text-teal-400 transition-colors">
+                    <h2 className="text-lg font-semibold text-white line-clamp-2 mb-2">
                       {post.title}
                     </h2>
                     <p className="text-gray-400 text-sm leading-6 line-clamp-3">
@@ -154,6 +169,6 @@ export default function SearchClient() {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

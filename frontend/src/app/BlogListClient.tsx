@@ -7,6 +7,7 @@ import { getAllPosts } from "@/lib/api";
 import type { BlogPost } from "@/lib/types";
 import Loader from "@/components/Loader";
 import BlogPagination from "@/components/Pagination";
+import { motion } from "framer-motion";
 
 export default function BlogListClient() {
   const [allPosts, setAllPosts] = useState<BlogPost[]>([]);
@@ -27,7 +28,6 @@ export default function BlogListClient() {
         const blogs = await getAllPosts();
         setAllPosts(blogs);
       } catch (err) {
-        console.error(err);
         setError("Error fetching posts.");
       } finally {
         setLoading(false);
@@ -36,7 +36,6 @@ export default function BlogListClient() {
     fetchPosts();
   }, []);
 
-  // Sort posts by updatedAt or createdAt descending
   const sortedPosts = useMemo(() => {
     return [...allPosts].sort((a, b) => {
       const dateA = new Date(a.updatedAt ?? a.createdAt ?? 0).getTime();
@@ -45,7 +44,6 @@ export default function BlogListClient() {
     });
   }, [allPosts]);
 
-  // Page-local slice: this page's items only
   const totalPages = Math.max(1, Math.ceil(sortedPosts.length / pageSize));
 
   const currentSlice = useMemo(() => {
@@ -54,7 +52,7 @@ export default function BlogListClient() {
   }, [sortedPosts, currentPage, pageSize]);
 
   const featuredPost = currentSlice[0];
-  const regularPosts = currentSlice.slice(1); // pageSize - 1 cards
+  const regularPosts = currentSlice.slice(1);
 
   const handlePageChange = (page: number) => {
     const newParams = new URLSearchParams(searchParams.toString());
@@ -92,86 +90,110 @@ export default function BlogListClient() {
     );
 
   return (
-    <div className="w-full">
-      {/* Page-local Featured Post */}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="w-full"
+    >
       {featuredPost && (
-        <Link href={`/blogs/${featuredPost.documentId}`}>
-          <div className="relative w-full h-[500px] overflow-hidden cursor-pointer group">
-            {featuredPost.cover?.url && (
-              <img
-                src={
-                  featuredPost.cover.url.startsWith("http")
-                    ? featuredPost.cover.url
-                    : `${process.env.NEXT_PUBLIC_STRAPI_URL}${featuredPost.cover.url}`
-                }
-                alt={featuredPost.title}
-                className="absolute inset-0 w-full h-full object-cover brightness-50 group-hover:scale-105 transition-transform duration-500"
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to from-black/80 via-black/40 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 max-w-7xl mx-auto">
-              {getCategoryName(featuredPost) && (
-                <span className="inline-block bg-teal-500 text-gray-900 text-xs font-bold px-4 py-2 rounded mb-4 uppercase tracking-wider">
-                  {getCategoryName(featuredPost)}
-                </span>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Link href={`/blogs/${featuredPost.documentId}`}>
+            <div className="relative w-full h-[500px] overflow-hidden cursor-pointer group">
+              {featuredPost.cover?.url && (
+                <img
+                  src={
+                    featuredPost.cover.url.startsWith("http")
+                      ? featuredPost.cover.url
+                      : `${process.env.NEXT_PUBLIC_STRAPI_URL}${featuredPost.cover.url}`
+                  }
+                  alt={featuredPost.title}
+                  className="absolute inset-0 w-full h-full object-cover brightness-50 group-hover:scale-105 transition-transform duration-500"
+                />
               )}
-              <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight max-w-4xl">
-                {featuredPost.title}
-              </h1>
-              <p className="text-gray-200 text-base md:text-lg max-w-2xl line-clamp-2">
-                {featuredPost.description}
-              </p>
+              <div className="absolute inset-0 bg-gradient-to from-black/80 via-black/40 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 max-w-7xl mx-auto">
+                {getCategoryName(featuredPost) && (
+                  <span className="inline-block bg-teal-500 text-gray-900 text-xs font-bold px-4 py-2 rounded mb-4 uppercase tracking-wider">
+                    {getCategoryName(featuredPost)}
+                  </span>
+                )}
+                <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight max-w-4xl">
+                  {featuredPost.title}
+                </h1>
+                <p className="text-gray-200 text-base md:text-lg max-w-2xl line-clamp-2">
+                  {featuredPost.description}
+                </p>
+              </div>
             </div>
-          </div>
-        </Link>
+          </Link>
+        </motion.div>
       )}
 
-      {/* Regular Posts Grid for this page (pageSize - 1 cards) */}
       <div className="w-full bg-slate-950 py-12">
         <div className="max-w-7xl mx-auto px-6 md:px-8">
           {regularPosts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {regularPosts.map((post) => (
-                <Link
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7 }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              {regularPosts.map((post, i) => (
+                <motion.div
                   key={post.documentId}
-                  href={`/blogs/${post.documentId}`}
-                  className="block p-6 border-t-2 border-gray-700 hover:border-teal-500 transition-colors duration-300 group"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * i, duration: 0.4 }}
                 >
-                  {getCategoryName(post) && (
-                    <div className="mb-4">
-                      <span className="inline-block text-teal-400 text-xs font-bold uppercase tracking-wider bg-teal-950/50 px-3 py-1 rounded">
-                        {getCategoryName(post)}
-                      </span>
-                    </div>
-                  )}
-                  <h2 className="text-xl font-bold text-white mb-3 leading-tight group-hover:text-teal-400 transition-colors">
-                    {post.title}
-                  </h2>
-                  <p className="text-gray-400 text-sm leading-relaxed line-clamp-3">
-                    {post.description}
-                  </p>
-                </Link>
+                  <Link
+                    href={`/blogs/${post.documentId}`}
+                    className="block p-6 border-t-2 border-gray-700 hover:border-teal-500 transition-colors duration-300 group"
+                  >
+                    {getCategoryName(post) && (
+                      <div className="mb-4">
+                        <span className="inline-block text-teal-400 text-xs font-bold uppercase tracking-wider bg-teal-950/50 px-3 py-1 rounded">
+                          {getCategoryName(post)}
+                        </span>
+                      </div>
+                    )}
+                    <h2 className="text-xl font-bold text-white mb-3 leading-tight group-hover:text-teal-400 transition-colors">
+                      {post.title}
+                    </h2>
+                    <p className="text-gray-400 text-sm leading-relaxed line-clamp-3">
+                      {post.description}
+                    </p>
+                  </Link>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           ) : (
             <p className="text-center text-gray-400">
               No more posts on this page.
             </p>
           )}
 
-          {/* Pagination Controls (full list) */}
           {sortedPosts.length > pageSize && (
-            <div className="mt-12">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="mt-12"
+            >
               <BlogPagination
                 currentPage={currentPage}
                 totalPages={totalPages}
                 basePath="/"
                 onPageChange={handlePageChange}
               />
-            </div>
+            </motion.div>
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
