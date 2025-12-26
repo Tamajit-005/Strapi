@@ -1,5 +1,9 @@
 import { gql } from "@apollo/client";
 
+/* ------------------------------------------------------
+   GRAPHQL QUERIES
+------------------------------------------------------ */
+
 // ALL BLOG POSTS
 export const GET_ALL_POSTS = gql`
   query GetAllPosts {
@@ -9,19 +13,28 @@ export const GET_ALL_POSTS = gql`
       slug
       description
       content
+
       category {
         documentId
         name
         slug
         description
       }
+
       cover {
         url
       }
+
       author {
         name
         email
       }
+
+      writer {
+        username
+        email
+      }
+
       createdAt
       updatedAt
     }
@@ -36,26 +49,35 @@ export const GET_POST_BY_DOCUMENT_ID = gql`
       slug
       description
       content
+
       category {
         documentId
         name
         slug
         description
       }
+
       cover {
         url
       }
+
       author {
         name
         email
       }
+
+      writer {
+        username
+        email
+      }
+
       createdAt
       updatedAt
     }
   }
 `;
 
-// SINGLE CATEGORY BY DOCUMENT ID WITH BLOGS 
+// SINGLE CATEGORY BY DOCUMENT ID WITH BLOGS
 export const GET_CATEGORY_BY_DOCUMENT_ID = gql`
   query GetCategoryByDocumentId($documentId: ID!) {
     category(documentId: $documentId) {
@@ -63,6 +85,7 @@ export const GET_CATEGORY_BY_DOCUMENT_ID = gql`
       name
       slug
       description
+
       blogs_connection {
         nodes {
           title
@@ -72,16 +95,25 @@ export const GET_CATEGORY_BY_DOCUMENT_ID = gql`
           content
           createdAt
           updatedAt
-          cover { url }
-          author { name email }
-          # If you need categories on each blog card, add:
-          # category { documentId name slug description }
+
+          cover {
+            url
+          }
+
+          author {
+            name
+            email
+          }
+
+          writer {
+            username
+            email
+          }
         }
       }
     }
   }
 `;
-
 
 // ALL CATEGORIES (flat)
 export const GET_ALL_CATEGORIES = gql`
@@ -98,8 +130,10 @@ export const GET_ALL_CATEGORIES = gql`
   }
 `;
 
+/* ------------------------------------------------------
+   TYPESCRIPT TYPES
+------------------------------------------------------ */
 
-// TypeScript types for data
 export type ImageData = {
   url: string;
   alternativeText?: string | null;
@@ -111,7 +145,11 @@ export type ImageData = {
 
 export type Author = {
   name: string;
-  // Optional email field
+  email?: string | null;
+};
+
+export type Writer = {
+  username: string;
   email?: string | null;
 };
 
@@ -133,11 +171,15 @@ export type BlogPost = {
   updatedAt?: string;
   publishedAt?: string;
   cover?: ImageData;
-  author?: Author;
+  author?: Author | null;
+  writer?: Writer | null;
   category?: Category[];
 };
 
-// GET_ALL_POSTS
+/* ------------------------------------------------------
+   QUERY RESULT TYPES
+------------------------------------------------------ */
+
 export type GetAllPostsResult = {
   blogs: Array<{
     title: string;
@@ -145,15 +187,15 @@ export type GetAllPostsResult = {
     slug?: string | null;
     description?: string | null;
     content?: string | null;
-    category?: Category[]; // returned as array in your schema
+    category?: Category[];
     cover?: { url?: string | null } | null;
     author?: { name: string; email?: string | null } | null;
+    writer?: { username: string; email?: string | null } | null;
     createdAt?: string | null;
     updatedAt?: string | null;
   }>;
 };
 
-// GET_POST_BY_DOCUMENT_ID
 export type GetPostByDocumentIdResult = {
   blog?: {
     title: string;
@@ -163,12 +205,12 @@ export type GetPostByDocumentIdResult = {
     category?: Category[];
     cover?: { url?: string | null } | null;
     author?: { name: string; email?: string | null } | null;
+    writer?: { username: string; email?: string | null } | null;
     createdAt?: string | null;
     updatedAt?: string | null;
   };
 };
 
-// GET_CATEGORY_BY_DOCUMENT_ID
 export type GetCategoryByDocumentIdResult = {
   category?: {
     documentId: string;
@@ -186,13 +228,12 @@ export type GetCategoryByDocumentIdResult = {
         updatedAt?: string | null;
         cover?: { url?: string | null } | null;
         author?: { name: string; email?: string | null } | null;
+        writer?: { username: string; email?: string | null } | null;
       }>;
     } | null;
   };
 };
 
-
-// GET_ALL_CATEGORIES (flat)
 export type GetAllCategoriesResult = {
   categories: Array<{
     documentId: string;

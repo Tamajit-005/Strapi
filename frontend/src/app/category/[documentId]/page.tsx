@@ -8,6 +8,7 @@ import BlogPagination from "@/components/Pagination";
 import type { BlogPost, Category } from "@/lib/types";
 import { client } from "@/lib/apolloClient";
 import { gql } from "@apollo/client";
+import { motion } from "framer-motion";
 
 const GET_CATEGORY_BY_DOCUMENT_ID = gql`
   query GetCategoryByDocumentId($documentId: ID!) {
@@ -58,7 +59,6 @@ type GetCategoryByDocumentIdResult = {
 
 export default function CategoryPage() {
   const params = useParams();
-  // Route: /category/[documentId]
   const raw = (params as Record<string, unknown>)?.documentId;
   const documentId = Array.isArray(raw) ? raw[0] : ((raw as string) ?? "");
 
@@ -98,7 +98,6 @@ export default function CategoryPage() {
           description: cat.description || "",
         } as Category);
 
-        // blogs is a flat array of Blog objects (no data/attributes)
         const mapped: BlogPost[] = (cat.blogs || []).map((b) => ({
           documentId: b.documentId,
           title: b.title,
@@ -111,7 +110,7 @@ export default function CategoryPage() {
           author: b.author
             ? {
                 name: b.author.name,
-                email: b.author.email ?? undefined, // <- coerce null to undefined
+                email: b.author.email ?? undefined,
               }
             : undefined,
         }));
@@ -119,7 +118,6 @@ export default function CategoryPage() {
         setBlogs(mapped);
         setCurrentPage(1);
       } catch (err: any) {
-        console.error(err);
         setError(err?.message || "Error fetching category data.");
         setCategory(null);
         setBlogs([]);
@@ -146,32 +144,49 @@ export default function CategoryPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="w-full flex items-center justify-center min-h-screen bg-slate-950">
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="w-full flex items-center justify-center min-h-screen bg-slate-950"
+      >
         <Loader />
-      </div>
+      </motion.div>
     );
-  }
 
-  if (error) {
+  if (error)
     return (
-      <div className="bg-slate-950 min-h-screen flex items-center justify-center">
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="bg-slate-950 min-h-screen flex items-center justify-center"
+      >
         <p className="text-red-500 text-center">{error}</p>
-      </div>
+      </motion.div>
     );
-  }
 
-  if (!category) {
+  if (!category)
     return (
-      <div className="bg-slate-950 min-h-screen flex items-center justify-center">
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="bg-slate-950 min-h-screen flex items-center justify-center"
+      >
         <p className="text-center text-gray-400">No category found.</p>
-      </div>
+      </motion.div>
     );
-  }
 
   return (
-    <div className="w-full bg-slate-950 min-h-screen">
+    <motion.div
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="w-full bg-slate-950 min-h-screen"
+    >
       <div className="max-w-5xl mx-auto p-6">
         <h1 className="text-4xl font-bold mb-6 text-teal-500 text-center">
           {category.name}
@@ -240,6 +255,6 @@ export default function CategoryPage() {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

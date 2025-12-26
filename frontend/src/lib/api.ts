@@ -23,12 +23,17 @@ export const GET_ALL_POSTS = gql`
         name
         email
       }
+      writer {
+        username
+        email
+      }
       createdAt
       updatedAt
     }
   }
 `;
 
+// SINGLE BLOG POST BY DOCUMENT ID
 export const GET_POST_BY_DOCUMENT_ID = gql`
   query GetPostByDocumentId($documentId: ID!) {
     blog(documentId: $documentId) {
@@ -49,12 +54,17 @@ export const GET_POST_BY_DOCUMENT_ID = gql`
         name
         email
       }
+      writer {
+        username
+        email
+      }
       createdAt
       updatedAt
     }
   }
 `;
 
+// ALL CATEGORIES
 export const GET_ALL_CATEGORIES = gql`
   query GetAllCategories {
     categories {
@@ -71,13 +81,13 @@ export const GET_ALL_CATEGORIES = gql`
 `;
 
 // Type definitions
-
 export type Category = {
   documentId: string;
   name: string;
   slug: string;
   description?: string | null;
 };
+
 
 export type BlogPost = {
   title: string;
@@ -88,6 +98,7 @@ export type BlogPost = {
   cover?: { url: string };
   category: Category[];
   author?: { name: string; email: string };
+  writer?: { username: string; email: string };
   createdAt?: string;
   updatedAt?: string;
 };
