@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const FROM_EMAIL = "PALETTE Publisher <onboarding@resend.dev>";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL!;
 
 export async function POST(req: NextRequest) {
   try {
+    const apiKey = process.env.RESEND_API_KEY;
+
+    if (!apiKey) {
+      throw new Error("RESEND_API_KEY is not configured");
+    }
+
+    const resend = new Resend(apiKey);
+
     const { name, email, message } = await req.json();
 
     if (!name || !email || !message) {
@@ -15,10 +21,6 @@ export async function POST(req: NextRequest) {
         { error: "Name, email and message are required" },
         { status: 400 }
       );
-    }
-
-    if (!process.env.RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY is not configured");
     }
 
     const response = await resend.emails.send({
