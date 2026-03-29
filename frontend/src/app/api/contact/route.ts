@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const FROM_EMAIL = "PALETTE Publisher <onboarding@resend.dev>";
+const FROM_EMAIL = "POST PALETTE <onboarding@resend.dev>";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL!;
+
+if (!ADMIN_EMAIL) {
+  throw new Error("ADMIN_EMAIL is not configured");
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     const response = await resend.emails.send({
       from: FROM_EMAIL,
-      to: ADMIN_EMAIL,
+      to: [ADMIN_EMAIL],
       replyTo: email,
       subject: `New Contact Form Message from ${name}`,
       html: `
@@ -129,7 +133,7 @@ export async function POST(req: NextRequest) {
         Reply to ${name}
       </a>
       <p style="margin-top: 20px; color: #9ca3af; font-size: 13px;">
-        This message was sent via the PALETTE Publisher contact form.
+        This message was sent via the POST PALETTE contact form.
       </p>
     </div>
   </div>

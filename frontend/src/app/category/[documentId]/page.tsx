@@ -1,74 +1,47 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Loader from "@/components/Loader";
 import BlogPagination from "@/components/Pagination";
 import type { BlogPost, Category } from "@/lib/types";
 import { client } from "@/lib/apolloClient";
-import { gql } from "@apollo/client";
+import {
+  GET_CATEGORY_BY_DOCUMENT_ID,
+  type GetCategoryByDocumentIdResult,
+} from "@/lib/queries";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
-const GET_CATEGORY_BY_DOCUMENT_ID = gql`
-  query GetCategoryByDocumentId($documentId: ID!) {
-    category(documentId: $documentId) {
-      documentId
-      name
-      slug
-      description
-      blogs {
-        title
-        documentId
-        slug
-        description
-        content
-        createdAt
-        updatedAt
-        cover {
-          url
-        }
-        author {
-          name
-          email
-        }
-      }
-    }
-  }
-`;
-
-type GetCategoryByDocumentIdResult = {
-  category?: {
-    documentId: string;
-    name: string;
-    slug: string;
-    description?: string | null;
-    blogs: Array<{
-      documentId: string;
-      title: string;
-      slug?: string | null;
-      description?: string | null;
-      content?: string | null;
-      createdAt?: string | null;
-      updatedAt?: string | null;
-      cover?: { url?: string | null } | null;
-      author?: { name: string; email?: string | null } | null;
-    }>;
-  };
-};
+function getImageUrl(url?: string) {
+  if (!url) return null;
+  return url.startsWith("http")
+    ? url
+    : `${process.env.NEXT_PUBLIC_STRAPI_URL}${url}`;
+}
 
 export default function CategoryPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const raw = (params as Record<string, unknown>)?.documentId;
   const documentId = Array.isArray(raw) ? raw[0] : ((raw as string) ?? "");
+
+  const pageFromUrl = Number(searchParams.get("page") || 1);
 
   const [category, setCategory] = useState<Category | null>(null);
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const pageSize = parseInt(process.env.NEXT_PUBLIC_PAGE_LIMIT || "6");
-  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = useMemo(
+    () => parseInt(process.env.NEXT_PUBLIC_PAGE_LIMIT || "6"),
+    [],
+  );
+
+  const [currentPage, setCurrentPage] = useState(pageFromUrl);
 
   useEffect(() => {
     if (!documentId) return;
@@ -76,18 +49,20 @@ export default function CategoryPage() {
     const fetchCategory = async () => {
       setLoading(true);
       setError(null);
+
       try {
         const { data } = await client.query<GetCategoryByDocumentIdResult>({
           query: GET_CATEGORY_BY_DOCUMENT_ID,
           variables: { documentId },
-          fetchPolicy: "no-cache",
+          fetchPolicy: "cache-first",
         });
 
         const cat = data?.category;
+
         if (!cat) {
+          setError("Category not found.");
           setCategory(null);
           setBlogs([]);
-          setError("Category not found.");
           return;
         }
 
@@ -96,29 +71,26 @@ export default function CategoryPage() {
           name: cat.name,
           slug: cat.slug,
           description: cat.description || "",
-        } as Category);
+        });
 
-        const mapped: BlogPost[] = (cat.blogs || []).map((b) => ({
-          documentId: b.documentId,
-          title: b.title,
-          slug: b.slug || undefined,
-          description: b.description || undefined,
-          content: b.content || undefined,
-          createdAt: b.createdAt || undefined,
-          updatedAt: b.updatedAt || undefined,
-          cover: b.cover?.url ? { url: b.cover.url } : undefined,
-          author: b.author
-            ? {
-                name: b.author.name,
-                email: b.author.email ?? undefined,
-              }
-            : undefined,
-        }));
+        const mapped: BlogPost[] = (cat.blogs || [])
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt || "").getTime() -
+              new Date(a.createdAt || "").getTime(),
+          )
+          .map((b) => ({
+            documentId: b.documentId,
+            title: b.title,
+            description: b.description || undefined,
+            createdAt: b.createdAt || undefined,
+            cover: b.cover?.url ? { url: b.cover.url } : undefined,
+          }));
 
         setBlogs(mapped);
         setCurrentPage(1);
-      } catch (err: any) {
-        setError(err?.message || "Error fetching category data.");
+      } catch {
+        setError("Error fetching category data.");
         setCategory(null);
         setBlogs([]);
       } finally {
@@ -129,9 +101,21 @@ export default function CategoryPage() {
     fetchCategory();
   }, [documentId]);
 
+  useEffect(() => {
+    if (!documentId) return;
+    router.replace(
+      `/category/${encodeURIComponent(documentId)}?page=${currentPage}`,
+    );
+  }, [currentPage, documentId]);
+
+  useEffect(() => {
+    const total = Math.max(1, Math.ceil(blogs.length / pageSize));
+    if (currentPage > total) setCurrentPage(total);
+  }, [blogs.length, pageSize, currentPage]);
+
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(blogs.length / pageSize)),
-    [blogs.length, pageSize]
+    [blogs.length, pageSize],
   );
 
   const paginatedBlogs = useMemo(() => {
@@ -146,101 +130,107 @@ export default function CategoryPage() {
 
   if (loading)
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full flex items-center justify-center min-h-screen bg-slate-950"
-      >
+      <div className="w-full flex flex-col items-center justify-center min-h-screen bg-slate-950">
         <Loader />
-      </motion.div>
+        <p className="text-gray-400 mt-4">Loading category...</p>
+      </div>
     );
 
   if (error)
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="bg-slate-950 min-h-screen flex items-center justify-center"
-      >
+      <div className="bg-slate-950 min-h-screen flex items-center justify-center">
         <p className="text-red-500 text-center">{error}</p>
-      </motion.div>
+      </div>
     );
 
   if (!category)
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="bg-slate-950 min-h-screen flex items-center justify-center"
-      >
-        <p className="text-center text-gray-400">No category found.</p>
-      </motion.div>
+      <div className="bg-slate-950 min-h-screen flex items-center justify-center">
+        <p className="text-gray-400">No category found.</p>
+      </div>
     );
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="w-full bg-slate-950 min-h-screen"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="w-full bg-slate-950 min-h-screen text-gray-200"
     >
       <div className="max-w-5xl mx-auto p-6">
-        <h1 className="text-4xl font-bold mb-6 text-teal-500 text-center">
+        <h1 className="text-4xl font-bold text-teal-500 text-center mb-2">
           {category.name}
         </h1>
+
         {category.description && (
-          <p className="text-gray-400 text-center mb-8">
+          <p className="text-gray-400 text-center mb-4">
             {category.description}
           </p>
         )}
 
-        {paginatedBlogs.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {paginatedBlogs.map((post) => (
-              <div
-                key={post.documentId}
-                className="cursor-pointer bg-gray-900 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300"
-              >
-                <Link href={`/blogs/${post.documentId}`} className="block">
-                  {post.cover?.url ? (
-                    <div className="relative h-40 w-full">
-                      <img
-                        src={
-                          post.cover.url.startsWith("http")
-                            ? post.cover.url
-                            : `${process.env.NEXT_PUBLIC_STRAPI_URL}${post.cover.url}`
-                        }
-                        alt={post.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-full h-40 flex items-center justify-center bg-gray-800 text-gray-500 text-sm">
-                      No Image
-                    </div>
-                  )}
+        <p className="text-center text-gray-400 mb-8">
+          {blogs.length} posts in this category
+        </p>
 
-                  <div className="p-4">
-                    <h2 className="text-lg font-semibold text-white line-clamp-2 mb-2">
-                      {post.title}
-                    </h2>
-                    <p className="text-gray-400 text-sm leading-6 line-clamp-3">
-                      {post.description}
-                    </p>
-                    <p className="text-teal-400 text-sm mt-4 inline-block font-medium hover:underline">
-                      Read More →
-                    </p>
-                  </div>
-                </Link>
-              </div>
-            ))}
-          </div>
+        {paginatedBlogs.length > 0 ? (
+          <motion.div
+            initial="hidden"
+            animate="show"
+            variants={{
+              hidden: {},
+              show: { transition: { staggerChildren: 0.08 } },
+            }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {paginatedBlogs.map((post) => {
+              const imageUrl = getImageUrl(post.cover?.url);
+
+              return (
+                <motion.div
+                  key={post.documentId}
+                  variants={{
+                    hidden: { opacity: 0, y: 40 },
+                    show: { opacity: 1, y: 0 },
+                  }}
+                  whileHover={{ y: -8, scale: 1.02 }}
+                  transition={{ duration: 0.3 }}
+                  className="bg-gray-900 rounded-lg overflow-hidden shadow-md"
+                >
+                  <Link href={`/blogs/${post.documentId}`}>
+                    {imageUrl ? (
+                      <div className="relative h-40 w-full">
+                        <Image
+                          src={imageUrl}
+                          alt={post.title || "Blog image"}
+                          fill
+                          className="object-cover"
+                          unoptimized={process.env.NODE_ENV === "development"}
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-full h-40 flex items-center justify-center bg-gray-800 text-gray-500 text-sm">
+                        No Image
+                      </div>
+                    )}
+
+                    <div className="p-4">
+                      <h2 className="text-lg font-semibold text-white line-clamp-2 mb-2">
+                        {post.title}
+                      </h2>
+                      <p className="text-gray-400 text-sm line-clamp-3">
+                        {post.description}
+                      </p>
+                      <p className="text-teal-400 text-sm mt-4 font-medium hover:underline">
+                        Read More →
+                      </p>
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </motion.div>
         ) : (
           <p className="text-center text-gray-400 mt-12">
-            No blogs found in this category.
+            No blogs yet in this category. Check back later 👀
           </p>
         )}
 

@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import { getPostByDocumentId } from "@/lib/api";
+import { client } from "@/lib/apolloClient";
+import {
+  GET_POST_BY_DOCUMENT_ID,
+  type GetPostByDocumentIdResult,
+} from "@/lib/queries";
 import type { BlogPost } from "@/lib/types";
 
 import Markdown from "react-markdown";
@@ -20,7 +24,7 @@ const handleCopyCode = async (code: string) => {
   try {
     await navigator.clipboard.writeText(code);
     toast.success("Code copied!");
-  } catch (err) {
+  } catch {
     toast.error("Copy failed");
   }
 };
@@ -55,12 +59,45 @@ export default function BlogPostPage() {
       }
 
       try {
-        const fetchedPost = await getPostByDocumentId(slug);
+        const { data } = await client.query<GetPostByDocumentIdResult>({
+          query: GET_POST_BY_DOCUMENT_ID,
+          variables: { documentId: slug },
+        });
+
         if (!active) return;
-        setPost(fetchedPost);
-      } catch (err: any) {
+
+        if (!data?.blog) {
+          setError("Post not found.");
+          return;
+        }
+
+        // Map GQL result → BlogPost shape
+        const blog = data.blog;
+        setPost({
+          documentId: slug,
+          title: blog.title,
+          slug: blog.slug ?? undefined,
+          description: blog.description ?? undefined,
+          content: blog.content ?? undefined,
+          createdAt: blog.createdAt ?? undefined,
+          updatedAt: blog.updatedAt ?? undefined,
+          cover: blog.cover?.url ? { url: blog.cover.url } : undefined,
+          author: blog.author
+            ? { name: blog.author.name, email: blog.author.email ?? undefined }
+            : undefined,
+          writer: blog.writer
+            ? {
+                username: blog.writer.username,
+                email: blog.writer.email ?? undefined,
+              }
+            : undefined,
+          category: blog.category ?? undefined,
+        });
+      } catch (err: unknown) {
         if (!active) return;
-        setError(err?.message || "Error fetching post.");
+        const message =
+          err instanceof Error ? err.message : "Error fetching post.";
+        setError(message);
       } finally {
         if (active) setLoading(false);
       }
@@ -192,9 +229,25 @@ export default function BlogPostPage() {
                   {children}
                 </h3>
               ),
+              h4: ({ children }) => (
+                <h4 className="text-lg font-medium text-teal-100 mt-4 mb-2">
+                  {children}
+                </h4>
+              ),
               p: ({ children }) => (
                 <p className="text-gray-300 leading-relaxed my-3">{children}</p>
               ),
+              ul: ({ children }) => (
+                <ul className="list-disc list-inside my-4 pl-2 text-gray-300 space-y-1">
+                  {children}
+                </ul>
+              ),
+              ol: ({ children }) => (
+                <ol className="list-decimal list-inside my-4 pl-2 text-gray-300 space-y-1">
+                  {children}
+                </ol>
+              ),
+              li: ({ children }) => <li className="ml-2">{children}</li>,
               blockquote: ({ children }) => (
                 <blockquote className="border-l-4 border-teal-500 pl-4 ml-2 italic text-gray-400 my-4">
                   {children}
@@ -203,25 +256,49 @@ export default function BlogPostPage() {
               u: ({ children }) => (
                 <u className="underline decoration-teal-500">{children}</u>
               ),
-              code: ({ children }) => (
-                <code
-                  className="bg-slate-800/70 text-teal-300 px-2 py-1 rounded block my-3 whitespace-pre"
-                  onClick={() => handleCopyCode(String(children))}
+              pre: ({ children }) => (
+                <pre
+                  className="bg-slate-900 border border-slate-800 rounded-lg p-4 my-4 overflow-x-auto cursor-pointer relative group"
+                  onClick={(e) => handleCopyCode(e.currentTarget.innerText)}
                 >
                   {children}
-                </code>
+                </pre>
               ),
-              text: ({ children }) =>
-                String(children).includes("\n")
-                  ? String(children)
-                      .split("\n")
-                      .map((line, i) => (
-                        <span key={i}>
-                          {line}
-                          <br />
-                        </span>
-                      ))
-                  : children,
+              code: ({ children, className }) => {
+                const isInline = !className;
+                if (isInline) {
+                  return (
+                    <code className="text-teal-300 px-1.5 py-0.5 rounded text-sm">
+                      {children}
+                    </code>
+                  );
+                }
+                return (
+                  <code className="text-teal-300 text-sm block whitespace-pre">
+                    {children}
+                  </code>
+                );
+              },
+              img: ({ src, alt, className }) => {
+                if (!src) return null;
+                const fullUrl = buildAssetUrl(
+                  typeof src === "string" ? src : undefined,
+                );
+                return (
+                  <img
+                    src={fullUrl}
+                    alt={alt || "Blog image"}
+                    className={
+                      className ||
+                      "rounded-lg w-full my-4 object-cover max-h-[500px]"
+                    }
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                );
+              },
             }}
           >
             {post.content || ""}

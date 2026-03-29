@@ -15,7 +15,7 @@
       "type": "text"
     },
     "description": {
-      "type": "string"
+      "type": "text"
     },
     "slug": {
       "type": "uid"

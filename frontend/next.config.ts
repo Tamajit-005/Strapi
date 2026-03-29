@@ -1,7 +1,23 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      // Allow ALL HTTPS images (production - Vercel, CDN, etc.)
+      {
+        protocol: "https",
+        hostname: "**",
+      },
+
+      // Allow ALL HTTP images (development - Strapi running on localhost)
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "1337",
+        pathname: "/uploads/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

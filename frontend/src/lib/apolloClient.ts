@@ -5,4 +5,13 @@ const STRAPI_GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_STRAPI_GRAPHQL_URL || "h
 export const client = new ApolloClient({
   link: new HttpLink({ uri: STRAPI_GRAPHQL_ENDPOINT }),
   cache: new InMemoryCache(),
+  defaultOptions: {
+    query: {
+      fetchPolicy: "cache-first",
+      errorPolicy: "all",
+    },
+    watchQuery: {
+      fetchPolicy: "cache-first",
+    },
+  },
 });

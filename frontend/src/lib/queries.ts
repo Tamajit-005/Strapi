@@ -7,7 +7,7 @@ import { gql } from "@apollo/client";
 // ALL BLOG POSTS
 export const GET_ALL_POSTS = gql`
   query GetAllPosts {
-    blogs {
+    blogs(pagination: { limit: 100 }) {
       title
       documentId
       slug
@@ -86,29 +86,24 @@ export const GET_CATEGORY_BY_DOCUMENT_ID = gql`
       slug
       description
 
-      blogs_connection {
-        nodes {
-          title
-          documentId
-          slug
-          description
-          content
-          createdAt
-          updatedAt
+      blogs {
+        documentId
+        title
+        description
+        createdAt
 
-          cover {
-            url
-          }
+        cover {
+          url
+        }
 
-          author {
-            name
-            email
-          }
+        author {
+          name
+          email
+        }
 
-          writer {
-            username
-            email
-          }
+        writer {
+          username
+          email
         }
       }
     }
@@ -126,6 +121,36 @@ export const GET_ALL_CATEGORIES = gql`
       createdAt
       updatedAt
       publishedAt
+    }
+  }
+`;
+
+// SEARCH BLOGS (server-side filtered — replaces fetching all posts in SearchClient)
+export const GET_BLOGS_BY_SEARCH = gql`
+  query SearchBlogs($query: String!) {
+    blogs(
+      filters: {
+        or: [
+          { title: { containsi: $query } }
+          { description: { containsi: $query } }
+        ]
+      }
+      pagination: { limit: 50 }
+    ) {
+      documentId
+      title
+      description
+
+      cover {
+        url
+      }
+
+      category {
+        documentId
+        name
+      }
+
+      createdAt
     }
   }
 `;
@@ -160,7 +185,6 @@ export type Category = {
   description?: string | null;
 };
 
-// Blog Post type
 export type BlogPost = {
   documentId: string;
   title: string;
@@ -217,20 +241,15 @@ export type GetCategoryByDocumentIdResult = {
     name: string;
     slug: string;
     description?: string | null;
-    blogs_connection?: {
-      nodes: Array<{
-        documentId: string;
-        title: string;
-        slug?: string | null;
-        description?: string | null;
-        content?: string | null;
-        createdAt?: string | null;
-        updatedAt?: string | null;
-        cover?: { url?: string | null } | null;
-        author?: { name: string; email?: string | null } | null;
-        writer?: { username: string; email?: string | null } | null;
-      }>;
-    } | null;
+    blogs: Array<{
+      documentId: string;
+      title: string;
+      description?: string | null;
+      createdAt?: string | null;
+      cover?: { url?: string | null } | null;
+      author?: { name: string; email?: string | null } | null;
+      writer?: { username: string; email?: string | null } | null;
+    }>;
   };
 };
 
@@ -243,5 +262,16 @@ export type GetAllCategoriesResult = {
     createdAt?: string | null;
     updatedAt?: string | null;
     publishedAt?: string | null;
+  }>;
+};
+
+export type GetBlogsBySearchResult = {
+  blogs: Array<{
+    documentId: string;
+    title: string;
+    description?: string | null;
+    cover?: { url?: string | null } | null;
+    category?: Array<{ documentId: string; name: string }> | null;
+    createdAt?: string | null;
   }>;
 };
