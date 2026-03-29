@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { getAllPosts } from "@/lib/api";
-import type { BlogPost } from "@/lib/types";
+import { client } from "@/lib/apolloClient";
+import {
+  GET_ALL_POSTS,
+  type GetAllPostsResult,
+  type BlogPost,
+} from "@/lib/queries";
 import Loader from "@/components/Loader";
 import BlogPagination from "@/components/Pagination";
 import { motion } from "framer-motion";
@@ -18,16 +22,19 @@ export default function BlogListClient() {
   const router = useRouter();
 
   const pageParam = searchParams.get("page");
-  const currentPage = pageParam ? parseInt(pageParam) : 1;
-  const pageSize = parseInt(process.env.NEXT_PUBLIC_PAGE_LIMIT || "7");
+  const parsedPage = parseInt(pageParam || "1");
+  const currentPage = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+  const pageSize = parseInt(process.env.NEXT_PUBLIC_PAGE_LIMIT || "10");
 
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        const blogs = await getAllPosts();
-        setAllPosts(blogs);
-      } catch (err) {
+        const { data } = await client.query<GetAllPostsResult>({
+          query: GET_ALL_POSTS,
+        });
+        setAllPosts((data?.blogs ?? []) as BlogPost[]);
+      } catch {
         setError("Error fetching posts.");
       } finally {
         setLoading(false);
@@ -46,6 +53,14 @@ export default function BlogListClient() {
 
   const totalPages = Math.max(1, Math.ceil(sortedPosts.length / pageSize));
 
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.set("page", totalPages.toString());
+      router.replace(`?${newParams.toString()}`);
+    }
+  }, [currentPage, totalPages, router, searchParams]);
+
   const currentSlice = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     return sortedPosts.slice(startIndex, startIndex + pageSize);
@@ -57,15 +72,8 @@ export default function BlogListClient() {
   const handlePageChange = (page: number) => {
     const newParams = new URLSearchParams(searchParams.toString());
     newParams.set("page", page.toString());
-    router.push(`?${newParams.toString()}`);
+    router.replace(`?${newParams.toString()}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const getCategoryName = (post: BlogPost): string | null => {
-    if (post.category && post.category.length > 0) {
-      return post.category[0].name;
-    }
-    return null;
   };
 
   if (loading)
@@ -117,10 +125,17 @@ export default function BlogListClient() {
               )}
               <div className="absolute inset-0 bg-gradient-to from-black/80 via-black/40 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 max-w-7xl mx-auto">
-                {getCategoryName(featuredPost) && (
-                  <span className="inline-block bg-teal-500 text-gray-900 text-xs font-bold px-4 py-2 rounded mb-4 uppercase tracking-wider">
-                    {getCategoryName(featuredPost)}
-                  </span>
+                {featuredPost.category && featuredPost.category.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {featuredPost.category.map((cat, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-block bg-teal-500 text-gray-900 text-xs font-bold px-4 py-2 rounded uppercase tracking-wider"
+                      >
+                        {cat.name}
+                      </span>
+                    ))}
+                  </div>
                 )}
                 <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight max-w-4xl">
                   {featuredPost.title}
@@ -154,11 +169,16 @@ export default function BlogListClient() {
                     href={`/blogs/${post.documentId}`}
                     className="block p-6 border-t-2 border-gray-700 hover:border-teal-500 transition-colors duration-300 group"
                   >
-                    {getCategoryName(post) && (
-                      <div className="mb-4">
-                        <span className="inline-block text-teal-400 text-xs font-bold uppercase tracking-wider bg-teal-950/50 px-3 py-1 rounded">
-                          {getCategoryName(post)}
-                        </span>
+                    {post.category && post.category.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {post.category.map((cat, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-block text-teal-400 text-xs font-bold uppercase tracking-wider bg-teal-950/50 px-3 py-1 rounded"
+                          >
+                            {cat.name}
+                          </span>
+                        ))}
                       </div>
                     )}
                     <h2 className="text-xl font-bold text-white mb-3 leading-tight group-hover:text-teal-400 transition-colors">

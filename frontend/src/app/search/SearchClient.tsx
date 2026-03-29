@@ -1,170 +1,171 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { getAllPosts } from "@/lib/api";
-import type { BlogPost } from "@/lib/types";
+import { client } from "@/lib/apolloClient";
+import {
+  GET_BLOGS_BY_SEARCH,
+  type GetBlogsBySearchResult,
+} from "@/lib/queries";
 import Loader from "@/components/Loader";
 import BlogPagination from "@/components/Pagination";
 import { motion } from "framer-motion";
 
 export default function SearchClient() {
   const searchParams = useSearchParams();
-  const query = (searchParams.get("query") || "").trim().toLowerCase();
+  const router = useRouter();
 
-  const [allPosts, setAllPosts] = useState<BlogPost[]>([]);
+  const query = (searchParams.get("query") || "").trim().toLowerCase();
+  const pageFromUrl = Number(searchParams.get("page") || 1);
+
+  const [searchResults, setSearchResults] = useState<
+    GetBlogsBySearchResult["blogs"]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(pageFromUrl);
 
-  const [totalPages, setTotalPages] = useState(1);
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = parseInt(process.env.NEXT_PUBLIC_PAGE_LIMIT || "6");
+  const pageSize = 6;
 
+  // Re-fetches on every new query string.
+  // Apollo InMemoryCache (cache-first) means repeat searches = 0 extra Strapi requests.
   useEffect(() => {
+    if (!query) {
+      setSearchResults([]);
+      return;
+    }
+
     const run = async () => {
       setLoading(true);
-      setError(null);
       try {
-        const posts = await getAllPosts();
-        setAllPosts(posts);
-      } catch (err) {
+        // fetchPolicy inherited from apolloClient defaultOptions (cache-first)
+        const { data } = await client.query<GetBlogsBySearchResult>({
+          query: GET_BLOGS_BY_SEARCH,
+          variables: { query },
+        });
+        setSearchResults(data?.blogs ?? []);
+      } catch {
         setError("Error searching blogs.");
       } finally {
         setLoading(false);
       }
     };
     run();
-  }, []);
+  }, [query]);
 
-  const filtered = useMemo(() => {
-    if (!query) return allPosts;
-    return allPosts.filter((p) => {
-      const inTitle = p.title?.toLowerCase().includes(query);
-      const inDesc = p.description?.toLowerCase().includes(query);
-      const inContent = p.content?.toLowerCase().includes(query);
-      const inCategory = (p.category || []).some((c) =>
-        c.name?.toLowerCase().includes(query)
-      );
-      return inTitle || inDesc || inContent || inCategory;
-    });
-  }, [allPosts, query]);
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(searchResults.length / pageSize)),
+    [searchResults.length, pageSize],
+  );
 
   useEffect(() => {
     setCurrentPage(1);
   }, [query]);
 
   useEffect(() => {
-    setTotalPages(Math.max(1, Math.ceil(filtered.length / pageSize)));
-  }, [filtered.length, pageSize]);
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (query) params.set("query", query);
+    params.set("page", String(currentPage));
+    router.replace(`/search?${params.toString()}`);
+  }, [currentPage, query, router]); // added router
 
   const paginatedResults = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filtered.slice(start, start + pageSize);
-  }, [filtered, currentPage, pageSize]);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+    return searchResults.slice(start, start + pageSize);
+  }, [searchResults, currentPage, pageSize]);
 
   if (loading)
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full min-h-screen flex items-center justify-center bg-slate-950"
-      >
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
         <Loader />
-      </motion.div>
+      </div>
     );
 
   if (error)
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="bg-slate-950 min-h-screen flex items-center justify-center"
-      >
-        <p className="text-red-500 text-center">{error}</p>
-      </motion.div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-red-500">
+        {error}
+      </div>
     );
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="w-full bg-slate-950 min-h-screen text-gray-200"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="bg-slate-950 min-h-screen text-gray-200"
     >
       <div className="max-w-5xl mx-auto p-6">
-        <h1 className="text-4xl font-bold mb-6 text-teal-500 text-center">
+        <h1 className="text-4xl font-bold text-center text-teal-500 mb-4">
           Search Results
         </h1>
 
-        {query && (
-          <p className="text-gray-400 text-center mb-8">
-            Showing results for:{" "}
-            <span className="text-teal-400 font-medium">"{query}"</span>
+        {query ? (
+          <p className="text-center text-gray-400 mb-6">
+            {searchResults.length} results for{" "}
+            <span className="text-teal-400">"{query}"</span>
           </p>
-        )}
-
-        {paginatedResults.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {paginatedResults.map((post) => (
-              <div
-                key={post.documentId}
-                className="cursor-pointer bg-gray-900 rounded-lg overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-transform duration-300"
-              >
-                <Link href={`/blogs/${post.documentId}`} className="block">
-                  {post.cover?.url ? (
-                    <div className="relative h-40 w-full">
-                      <img
-                        src={
-                          post.cover.url.startsWith("http")
-                            ? post.cover.url
-                            : `${process.env.NEXT_PUBLIC_STRAPI_URL}${post.cover.url}`
-                        }
-                        alt={post.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-full h-40 flex items-center justify-center bg-gray-800 text-gray-500 text-sm">
-                      No Image
-                    </div>
-                  )}
-
-                  <div className="p-5">
-                    <h2 className="text-lg font-semibold text-white line-clamp-2 mb-2">
-                      {post.title}
-                    </h2>
-                    <p className="text-gray-400 text-sm leading-6 line-clamp-3">
-                      {post.description}
-                    </p>
-                    <p className="text-teal-400 text-sm mt-4 inline-block font-medium hover:underline">
-                      Read More →
-                    </p>
-                  </div>
-                </Link>
-              </div>
-            ))}
-          </div>
         ) : (
-          <p className="text-center text-gray-400 mt-12">
-            {query ? `No results found for "${query}".` : "No posts available."}
+          <p className="text-center text-gray-400 mb-6">
+            Enter a search term to find posts.
           </p>
         )}
 
-        {paginatedResults.length > 0 && (
-          <div className="mt-12">
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={{ show: { transition: { staggerChildren: 0.08 } } }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {paginatedResults.map((post) => (
+            <motion.div
+              key={post.documentId}
+              variants={{
+                hidden: { opacity: 0, y: 40 },
+                show: { opacity: 1, y: 0 },
+              }}
+              whileHover={{ y: -8, scale: 1.02 }}
+              className="bg-gray-900 rounded-lg overflow-hidden shadow-md"
+            >
+              <Link href={`/blogs/${post.documentId}`}>
+                <div className="relative h-40 w-full">
+                  <img
+                    src={
+                      post.cover?.url?.startsWith("http")
+                        ? post.cover.url
+                        : `${process.env.NEXT_PUBLIC_STRAPI_URL}${post.cover?.url}`
+                    }
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="p-4">
+                  <h2 className="text-lg font-semibold text-white line-clamp-2 mb-2">
+                    {post.title}
+                  </h2>
+                  <p className="text-gray-400 text-sm line-clamp-3">
+                    {post.description}
+                  </p>
+                  <p className="text-teal-400 text-sm mt-4 font-medium hover:underline">
+                    Read More →
+                  </p>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {searchResults.length > pageSize && (
+          <div className="mt-10">
             <BlogPagination
               currentPage={currentPage}
               totalPages={totalPages}
               basePath="/search"
-              onPageChange={handlePageChange}
+              queryString={`query=${encodeURIComponent(query)}`}
+              onPageChange={setCurrentPage}
             />
           </div>
         )}
