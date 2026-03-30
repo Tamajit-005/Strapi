@@ -2,39 +2,46 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+
+import { client } from "@/lib/apolloClient";
+import {
+  GET_POST_BY_DOCUMENT_ID,
+  type GetPostByDocumentIdResult,
+} from "@/lib/queries";
 import type { BlogPost } from "@/lib/types";
-import { getPostByDocumentId } from "@/lib/api";
+
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
+import rehypeRaw from "rehype-raw";
+
 import Loader from "@/components/Loader";
 import moment from "moment";
 import { toast } from "react-hot-toast";
+import { motion } from "framer-motion";
 
 const handleCopyCode = async (code: string) => {
   try {
     await navigator.clipboard.writeText(code);
-    toast.success("Code copied to clipboard!");
-  } catch (err) {
-    console.error("Failed to copy code: ", err);
-    toast.error("Failed to copy code!");
+    toast.success("Code copied!");
+  } catch {
+    toast.error("Copy failed");
   }
 };
 
-function buildAssetUrl(path?: string): string | undefined {
+function buildAssetUrl(path?: string) {
   if (!path) return undefined;
   if (/^https?:\/\//i.test(path)) return path;
-  const base = process.env.NEXT_PUBLIC_STRAPI_URL || "";
-  return `${base}${path}`;
+  return `${process.env.NEXT_PUBLIC_STRAPI_URL}${path}`;
 }
 
-const BlogPostPage = () => {
+export default function BlogPostPage() {
   const router = useRouter();
   const params = useParams();
 
-  // Extract slug param (assumed to be documentId per your API)
   const slug = useMemo(() => {
     const raw = (params as Record<string, unknown>)?.slug;
-    return Array.isArray(raw) ? raw[0] : ((raw as string) ?? "");
+    return Array.isArray(raw) ? raw[0] : (raw as string);
   }, [params]);
 
   const [post, setPost] = useState<BlogPost | null>(null);
@@ -50,14 +57,47 @@ const BlogPostPage = () => {
         setLoading(false);
         return;
       }
+
       try {
-        const fetchedPost = await getPostByDocumentId(slug);
+        const { data } = await client.query<GetPostByDocumentIdResult>({
+          query: GET_POST_BY_DOCUMENT_ID,
+          variables: { documentId: slug },
+        });
+
         if (!active) return;
-        setPost(fetchedPost);
-      } catch (err: any) {
-        console.error(err);
+
+        if (!data?.blog) {
+          setError("Post not found.");
+          return;
+        }
+
+        // Map GQL result → BlogPost shape
+        const blog = data.blog;
+        setPost({
+          documentId: slug,
+          title: blog.title,
+          slug: blog.slug ?? undefined,
+          description: blog.description ?? undefined,
+          content: blog.content ?? undefined,
+          createdAt: blog.createdAt ?? undefined,
+          updatedAt: blog.updatedAt ?? undefined,
+          cover: blog.cover?.url ? { url: blog.cover.url } : undefined,
+          author: blog.author
+            ? { name: blog.author.name, email: blog.author.email ?? undefined }
+            : undefined,
+          writer: blog.writer
+            ? {
+                username: blog.writer.username,
+                email: blog.writer.email ?? undefined,
+              }
+            : undefined,
+          category: blog.category ?? undefined,
+        });
+      } catch (err: unknown) {
         if (!active) return;
-        setError(err?.message || "Error fetching post.");
+        const message =
+          err instanceof Error ? err.message : "Error fetching post.";
+        setError(message);
       } finally {
         if (active) setLoading(false);
       }
@@ -86,27 +126,47 @@ const BlogPostPage = () => {
   if (!post)
     return (
       <div className="w-full min-h-screen flex items-center justify-center bg-slate-950">
-        <p className="text-gray-300">No post found.</p>
+        <p className="text-gray-300">Post not found.</p>
       </div>
     );
 
   const coverUrl = buildAssetUrl(post.cover?.url);
 
   return (
-    <div className="w-full min-h-screen bg-slate-950 text-gray-200">
-      <div className="max-w-3xl mx-auto p-4">
-        <h1 className="text-4xl leading-[60px] capitalize text-center font-bold text-teal-500 font-jet-brains">
+    <motion.div
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="w-full min-h-screen bg-slate-950 text-gray-200"
+    >
+      <div className="max-w-3xl mx-auto p-6 pb-20">
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-4xl leading-[60px] text-center font-bold text-teal-400 capitalize"
+        >
           {post.title}
-        </h1>
+        </motion.h1>
 
-        <div className="w-full flex items-center justify-center font-light text-gray-400 mt-1">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="w-full flex items-center justify-center font-light text-gray-400 mt-1"
+        >
           {post.createdAt
             ? `Published ${moment(post.createdAt).fromNow()}`
             : ""}
-        </div>
+        </motion.div>
 
         {post.category && post.category.length > 0 && (
-          <div className="flex flex-wrap space-x-2 my-4 justify-center">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="flex flex-wrap space-x-2 my-4 justify-center"
+          >
             {post.category.map(({ name, documentId }) => (
               <span
                 key={documentId}
@@ -115,28 +175,44 @@ const BlogPostPage = () => {
                 {name}
               </span>
             ))}
-          </div>
+          </motion.div>
         )}
 
         {coverUrl && (
-          <div className="relative h-72 w-full my-6">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="relative h-72 w-full my-6"
+          >
             <img
               src={coverUrl}
               alt={post.title}
               className="rounded-lg w-full h-full object-cover"
             />
-          </div>
+          </motion.div>
         )}
 
         {post.description && (
-          <p className="text-gray-400 leading-8 tracking-wide italic mt-2 mb-6 text-center">
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="text-gray-400 leading-8 tracking-wide italic mt-2 mb-6 text-center"
+          >
             {post.description}
-          </p>
+          </motion.p>
         )}
 
-        <div className="prose prose-invert max-w-none leading-relaxed">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="prose prose-invert max-w-none leading-relaxed"
+        >
           <Markdown
-            remarkPlugins={[remarkGfm]}
+            remarkPlugins={[remarkGfm, remarkBreaks]}
+            rehypePlugins={[rehypeRaw]}
             components={{
               h1: ({ children }) => (
                 <h1 className="text-3xl font-bold text-teal-400 mt-10 mb-4 border-b border-teal-800 pb-2">
@@ -153,57 +229,122 @@ const BlogPostPage = () => {
                   {children}
                 </h3>
               ),
+              h4: ({ children }) => (
+                <h4 className="text-lg font-medium text-teal-100 mt-4 mb-2">
+                  {children}
+                </h4>
+              ),
               p: ({ children }) => (
                 <p className="text-gray-300 leading-relaxed my-3">{children}</p>
               ),
-              code: ({ children }) => (
-                <code
-                  className="bg-slate-800/70 text-teal-300 px-1 py-0.5 rounded"
-                  onClick={() => handleCopyCode(String(children))}
+              ul: ({ children }) => (
+                <ul className="list-disc list-inside my-4 pl-2 text-gray-300 space-y-1">
+                  {children}
+                </ul>
+              ),
+              ol: ({ children }) => (
+                <ol className="list-decimal list-inside my-4 pl-2 text-gray-300 space-y-1">
+                  {children}
+                </ol>
+              ),
+              li: ({ children }) => <li className="ml-2">{children}</li>,
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-4 border-teal-500 pl-4 ml-2 italic text-gray-400 my-4">
+                  {children}
+                </blockquote>
+              ),
+              u: ({ children }) => (
+                <u className="underline decoration-teal-500">{children}</u>
+              ),
+              pre: ({ children }) => (
+                <pre
+                  className="bg-slate-900 border border-slate-800 rounded-lg p-4 my-4 overflow-x-auto cursor-pointer relative group"
+                  onClick={(e) => handleCopyCode(e.currentTarget.innerText)}
                 >
                   {children}
-                </code>
+                </pre>
               ),
+              code: ({ children, className }) => {
+                const isInline = !className;
+                if (isInline) {
+                  return (
+                    <code className="text-teal-300 px-1.5 py-0.5 rounded text-sm">
+                      {children}
+                    </code>
+                  );
+                }
+                return (
+                  <code className="text-teal-300 text-sm block whitespace-pre">
+                    {children}
+                  </code>
+                );
+              },
+              img: ({ src, alt, className }) => {
+                if (!src) return null;
+                const fullUrl = buildAssetUrl(
+                  typeof src === "string" ? src : undefined,
+                );
+                return (
+                  <img
+                    src={fullUrl}
+                    alt={alt || "Blog image"}
+                    className={
+                      className ||
+                      "rounded-lg w-full my-4 object-cover max-h-[500px]"
+                    }
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                );
+              },
             }}
           >
             {post.content || ""}
           </Markdown>
-        </div>
+        </motion.div>
 
-        <div className="flex flex-col items-center justify-center text-gray-400 font-light mb-6 mt-8 text-sm">
-          {post.createdAt && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="flex flex-col items-center justify-center text-gray-400 font-light mb-6 mt-10 text-sm"
+        >
+          {(post.author?.name || post.writer?.username) && (
             <p>
-              Published {moment(post.createdAt).fromNow()}
-              {post.author?.name && (
-                <>
-                  {" "}
-                  by{" "}
-                  <span className="font-medium text-teal-300">
-                    {post.author.name}
-                  </span>
-                </>
-              )}
+              Written by{" "}
+              <span className="font-medium text-teal-300">
+                {post.author?.name || post.writer?.username}
+              </span>{" "}
+              — {moment(post.createdAt).fromNow()}
             </p>
           )}
-          {post.author?.email && (
+
+          {(post.author?.email || post.writer?.email) && (
             <p className="text-gray-400 mt-1">
-              Email:{" "}
+              Contact:{" "}
               <span className="font-medium text-teal-500">
-                {post.author.email}
+                {post.author?.email || post.writer?.email}
               </span>
             </p>
           )}
-        </div>
+        </motion.div>
 
-        <button
-          onClick={() => router.back()}
-          className="text-teal-500 mt-4 inline-block hover:underline"
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.55 }}
+          className="w-full flex justify-center mt-8"
         >
-          Back to Blogs
-        </button>
+          <button
+            onClick={() => router.back()}
+            className="text-teal-500 font-medium hover:underline"
+          >
+            ← Back to Blogs
+          </button>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
-};
-
-export default BlogPostPage;
+}

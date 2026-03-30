@@ -1,27 +1,40 @@
 import { gql } from "@apollo/client";
 
+/* ------------------------------------------------------
+   GRAPHQL QUERIES
+------------------------------------------------------ */
+
 // ALL BLOG POSTS
 export const GET_ALL_POSTS = gql`
   query GetAllPosts {
-    blogs {
+    blogs(pagination: { limit: 100 }) {
       title
       documentId
       slug
       description
       content
+
       category {
         documentId
         name
         slug
         description
       }
+
       cover {
         url
       }
+
       author {
         name
         email
       }
+
+      writer {
+        username
+        email
+      }
+
       createdAt
       updatedAt
     }
@@ -36,26 +49,35 @@ export const GET_POST_BY_DOCUMENT_ID = gql`
       slug
       description
       content
+
       category {
         documentId
         name
         slug
         description
       }
+
       cover {
         url
       }
+
       author {
         name
         email
       }
+
+      writer {
+        username
+        email
+      }
+
       createdAt
       updatedAt
     }
   }
 `;
 
-// SINGLE CATEGORY BY DOCUMENT ID WITH BLOGS 
+// SINGLE CATEGORY BY DOCUMENT ID WITH BLOGS
 export const GET_CATEGORY_BY_DOCUMENT_ID = gql`
   query GetCategoryByDocumentId($documentId: ID!) {
     category(documentId: $documentId) {
@@ -63,25 +85,30 @@ export const GET_CATEGORY_BY_DOCUMENT_ID = gql`
       name
       slug
       description
-      blogs_connection {
-        nodes {
-          title
-          documentId
-          slug
-          description
-          content
-          createdAt
-          updatedAt
-          cover { url }
-          author { name email }
-          # If you need categories on each blog card, add:
-          # category { documentId name slug description }
+
+      blogs {
+        documentId
+        title
+        description
+        createdAt
+
+        cover {
+          url
+        }
+
+        author {
+          name
+          email
+        }
+
+        writer {
+          username
+          email
         }
       }
     }
   }
 `;
-
 
 // ALL CATEGORIES (flat)
 export const GET_ALL_CATEGORIES = gql`
@@ -98,8 +125,40 @@ export const GET_ALL_CATEGORIES = gql`
   }
 `;
 
+// SEARCH BLOGS (server-side filtered — replaces fetching all posts in SearchClient)
+export const GET_BLOGS_BY_SEARCH = gql`
+  query SearchBlogs($query: String!) {
+    blogs(
+      filters: {
+        or: [
+          { title: { containsi: $query } }
+          { description: { containsi: $query } }
+        ]
+      }
+      pagination: { limit: 50 }
+    ) {
+      documentId
+      title
+      description
 
-// TypeScript types for data
+      cover {
+        url
+      }
+
+      category {
+        documentId
+        name
+      }
+
+      createdAt
+    }
+  }
+`;
+
+/* ------------------------------------------------------
+   TYPESCRIPT TYPES
+------------------------------------------------------ */
+
 export type ImageData = {
   url: string;
   alternativeText?: string | null;
@@ -111,7 +170,11 @@ export type ImageData = {
 
 export type Author = {
   name: string;
-  // Optional email field
+  email?: string | null;
+};
+
+export type Writer = {
+  username: string;
   email?: string | null;
 };
 
@@ -122,7 +185,6 @@ export type Category = {
   description?: string | null;
 };
 
-// Blog Post type
 export type BlogPost = {
   documentId: string;
   title: string;
@@ -133,11 +195,15 @@ export type BlogPost = {
   updatedAt?: string;
   publishedAt?: string;
   cover?: ImageData;
-  author?: Author;
+  author?: Author | null;
+  writer?: Writer | null;
   category?: Category[];
 };
 
-// GET_ALL_POSTS
+/* ------------------------------------------------------
+   QUERY RESULT TYPES
+------------------------------------------------------ */
+
 export type GetAllPostsResult = {
   blogs: Array<{
     title: string;
@@ -145,15 +211,15 @@ export type GetAllPostsResult = {
     slug?: string | null;
     description?: string | null;
     content?: string | null;
-    category?: Category[]; // returned as array in your schema
+    category?: Category[];
     cover?: { url?: string | null } | null;
     author?: { name: string; email?: string | null } | null;
+    writer?: { username: string; email?: string | null } | null;
     createdAt?: string | null;
     updatedAt?: string | null;
   }>;
 };
 
-// GET_POST_BY_DOCUMENT_ID
 export type GetPostByDocumentIdResult = {
   blog?: {
     title: string;
@@ -163,36 +229,30 @@ export type GetPostByDocumentIdResult = {
     category?: Category[];
     cover?: { url?: string | null } | null;
     author?: { name: string; email?: string | null } | null;
+    writer?: { username: string; email?: string | null } | null;
     createdAt?: string | null;
     updatedAt?: string | null;
   };
 };
 
-// GET_CATEGORY_BY_DOCUMENT_ID
 export type GetCategoryByDocumentIdResult = {
   category?: {
     documentId: string;
     name: string;
     slug: string;
     description?: string | null;
-    blogs_connection?: {
-      nodes: Array<{
-        documentId: string;
-        title: string;
-        slug?: string | null;
-        description?: string | null;
-        content?: string | null;
-        createdAt?: string | null;
-        updatedAt?: string | null;
-        cover?: { url?: string | null } | null;
-        author?: { name: string; email?: string | null } | null;
-      }>;
-    } | null;
+    blogs: Array<{
+      documentId: string;
+      title: string;
+      description?: string | null;
+      createdAt?: string | null;
+      cover?: { url?: string | null } | null;
+      author?: { name: string; email?: string | null } | null;
+      writer?: { username: string; email?: string | null } | null;
+    }>;
   };
 };
 
-
-// GET_ALL_CATEGORIES (flat)
 export type GetAllCategoriesResult = {
   categories: Array<{
     documentId: string;
@@ -202,5 +262,16 @@ export type GetAllCategoriesResult = {
     createdAt?: string | null;
     updatedAt?: string | null;
     publishedAt?: string | null;
+  }>;
+};
+
+export type GetBlogsBySearchResult = {
+  blogs: Array<{
+    documentId: string;
+    title: string;
+    description?: string | null;
+    cover?: { url?: string | null } | null;
+    category?: Array<{ documentId: string; name: string }> | null;
+    createdAt?: string | null;
   }>;
 };

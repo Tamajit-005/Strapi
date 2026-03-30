@@ -20,6 +20,7 @@
     "@strapi/plugin-graphql": "^5.29.0",
     "@strapi/plugin-users-permissions": "5.23.6",
     "@strapi/strapi": "5.23.6",
+    "better-sqlite3": "^12.8.0",
     "fs-extra": "^10.0.0",
     "mime-types": "^2.1.27",
     "mysql2": "3.9.8",
@@ -32,6 +33,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "baseline-browser-mapping": "^2.9.11",
     "typescript": "^5"
   },
   "engines": {

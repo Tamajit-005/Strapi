@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { FaTwitter, FaGithub, FaInstagram } from "react-icons/fa";
-import emailjs from "@emailjs/browser";
+import { motion } from "framer-motion";
 
 export default function ContactPage() {
   const [name, setName] = useState("");
@@ -16,28 +16,40 @@ export default function ContactPage() {
     setLoading(true);
 
     try {
-      const result = await emailjs.send(
-        "service_2z2imqp",
-        "template_09fvxyn",
-        { name, email, message },
-        "7ieLAwg5IFgkJqt-M"
-      );
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          message: message.trim(),
+        }),
+      });
 
-      console.log(result);
-      toast.success("Message sent!");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send message");
+      }
+
+      toast.success("Message sent successfully!");
       setName("");
       setEmail("");
       setMessage("");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to send message!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send message!");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full min-h-screen bg-slate-950 text-gray-300 py-12 px-4">
+    <motion.div
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="w-full min-h-screen bg-slate-950 text-gray-300 py-12 px-4"
+    >
       <div className="max-w-3xl mx-auto bg-gray-900 rounded-lg shadow-lg p-6 md:p-10">
         <h1 className="text-4xl font-bold text-teal-500 mb-6 text-center">
           Contact Us
@@ -45,7 +57,7 @@ export default function ContactPage() {
 
         <p className="text-gray-400 mb-8 text-center">
           Have a question or want to collaborate? Fill out the form below or
-          email us directly at{" "}
+          email us at{" "}
           <a
             href="mailto:tamajitsaha05@gmail.com"
             className="text-teal-400 underline hover:text-teal-300 transition"
@@ -62,38 +74,49 @@ export default function ContactPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="p-3 rounded-md bg-slate-800 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+            minLength={2}
+            maxLength={100}
+            className="p-3 rounded-md bg-slate-800 text-gray-100 placeholder-gray-500 
+              focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
           />
+
           <input
             type="email"
             placeholder="Your Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="p-3 rounded-md bg-slate-800 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+            className="p-3 rounded-md bg-slate-800 text-gray-100 placeholder-gray-500 
+              focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
           />
+
           <textarea
             placeholder="Your Message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             required
+            minLength={10}
+            maxLength={5000}
             rows={5}
-            className="p-3 rounded-md bg-slate-800 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+            className="p-3 rounded-md bg-slate-800 text-gray-100 placeholder-gray-500 
+              focus:outline-none focus:ring-2 focus:ring-teal-500 transition resize-vertical"
           />
+
           <button
             type="submit"
             disabled={loading}
-            className="bg-teal-600 hover:bg-teal-500 text-white font-medium px-6 py-3 rounded-md transition disabled:opacity-50"
+            className="bg-teal-600 hover:bg-teal-500 text-white font-medium px-6 py-3 rounded-md 
+              transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Sending..." : "Send Message"}
           </button>
         </form>
 
-        {/* Social links */}
         <div className="mt-10 text-center">
           <h2 className="text-xl font-semibold mb-3 text-teal-400">
             Follow us:
           </h2>
+
           <div className="flex justify-center gap-6">
             <a
               href="https://x.com/tamajitsaha05"
@@ -103,6 +126,7 @@ export default function ContactPage() {
             >
               <FaTwitter size={22} />
             </a>
+
             <a
               href="https://github.com/Tamajit-005"
               target="_blank"
@@ -111,6 +135,7 @@ export default function ContactPage() {
             >
               <FaGithub size={22} />
             </a>
+
             <a
               href="https://www.instagram.com/tamajit005/"
               target="_blank"
@@ -122,6 +147,6 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

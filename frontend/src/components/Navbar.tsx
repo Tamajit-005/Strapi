@@ -12,25 +12,18 @@ const Navbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const router = useRouter();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Category data as per your backend keys
+  const inputRef = useRef<HTMLInputElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter();
+
   const categories = [
-    { label: "Gaming", slug: "gaming", documentId: "zxhivhcsvvo4bwsv8lrijpop" },
-    { label: "Tech", slug: "tech", documentId: "icchgazsjbhc07ogtzksx6dq" },
-    { label: "Food", slug: "food", documentId: "o5d6wlqkmmea2nkp17ziea7z" },
-    { label: "Nature", slug: "nature", documentId: "kaigx15rehooagdlsb2q9x9k" },
-    {
-      label: "Culture",
-      slug: "culture",
-      documentId: "h1oaqs7skpgwx42u765xqrc2",
-    },
-    {
-      label: "Entertainment",
-      slug: "entertainment",
-      documentId: "ynv7oa1i6v09tx54w7pfyrze",
-    },
+    { label: "Gaming", documentId: "zxhivhcsvvo4bwsv8lrijpop" },
+    { label: "Tech", documentId: "icchgazsjbhc07ogtzksx6dq" },
+    { label: "Food", documentId: "o5d6wlqkmmea2nkp17ziea7z" },
+    { label: "Nature", documentId: "kaigx15rehooagdlsb2q9x9k" },
+    { label: "Culture", documentId: "h1oaqs7skpgwx42u765xqrc2" },
+    { label: "Entertainment", documentId: "ynv7oa1i6v09tx54w7pfyrze" },
   ];
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -43,28 +36,27 @@ const Navbar = () => {
     setMenuOpen(false);
   };
 
-  const toggleDropdown = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    setDropdownOpen((prev) => !prev);
-  };
-
+  // Focus input when search opens
   useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (searchOpen) {
+      setTimeout(() => inputRef.current?.focus(), 200);
+    }
+  }, [searchOpen]);
+
+  // ESC closes search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSearchOpen(false);
     };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // Prevent body scrolling behind open overlays
-  useEffect(() => {
-    if (menuOpen || searchOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-  }, [menuOpen, searchOpen]);
+  // Prevent both menu and search open
+  const openSearch = () => {
+    setMenuOpen(false);
+    setSearchOpen(true);
+  };
 
   return (
     <header className="bg-[#0f111a] text-white sticky top-0 z-50 shadow-md">
@@ -81,7 +73,7 @@ const Navbar = () => {
           />
         </Link>
 
-        {/* Desktop Navigation */}
+        {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-6 font-medium">
           <Link
             href="/"
@@ -91,24 +83,19 @@ const Navbar = () => {
             Blogs
           </Link>
 
-          {/* Categories Dropdown */}
+          {/* Categories */}
           <div
             className="relative cursor-pointer"
             onMouseEnter={() => {
-              if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-                timeoutRef.current = null;
-              }
+              if (timeoutRef.current) clearTimeout(timeoutRef.current);
               setDropdownOpen(true);
             }}
             onMouseLeave={() => {
-              if (timeoutRef.current) clearTimeout(timeoutRef.current);
               timeoutRef.current = setTimeout(
                 () => setDropdownOpen(false),
-                200
+                200,
               );
             }}
-            onClick={toggleDropdown}
           >
             <button className="hover:text-teal-400 transition-colors">
               Categories
@@ -120,7 +107,6 @@ const Navbar = () => {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2, ease: "easeInOut" }}
                   className="absolute left-0 mt-2 bg-[#1a1c29] border border-gray-700 rounded-lg shadow-lg w-44 z-50"
                 >
                   <ul className="py-2 text-sm">
@@ -128,7 +114,7 @@ const Navbar = () => {
                       <li key={c.documentId}>
                         <Link
                           href={`/category/${encodeURIComponent(c.documentId)}`}
-                          className="block px-4 py-2 hover:bg-teal-700 hover:text-white transition-colors"
+                          className="block px-4 py-2 hover:bg-teal-700"
                           onClick={() => setDropdownOpen(false)}
                         >
                           {c.label}
@@ -141,27 +127,35 @@ const Navbar = () => {
             </AnimatePresence>
           </div>
 
-          {/* Search Button */}
-          <button
-            onClick={() => setSearchOpen((prev) => !prev)}
-            className="text-xl hover:text-teal-400 transition-colors"
-            aria-label="Open Search"
-          >
+          {/* Search */}
+          <button onClick={openSearch} className="text-xl hover:text-teal-400">
             <FaSearch />
           </button>
         </nav>
 
-        {/* Mobile Hamburger */}
-        <button
-          className="md:hidden text-xl"
-          onClick={() => setMenuOpen((prev) => !prev)}
-          aria-label="Toggle Menu"
-        >
-          {menuOpen ? <FaTimes /> : <FaBars />}
-        </button>
+        {/* Mobile Right Controls */}
+        <div className="md:hidden flex items-center gap-4 text-xl">
+          <button
+            onClick={openSearch}
+            className="hover:text-teal-400 transition-colors"
+            aria-label="Open Search"
+          >
+            <FaSearch />
+          </button>
+
+          <button
+            onClick={() => {
+              setSearchOpen(false);
+              setMenuOpen((prev) => !prev);
+            }}
+            aria-label="Toggle Menu"
+          >
+            {menuOpen ? <FaTimes /> : <FaBars />}
+          </button>
+        </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
+      {/* MOBILE MENU */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -169,18 +163,9 @@ const Navbar = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="fixed top-0 left-0 w-full h-full bg-[#0f111a] px-4 pb-4 z-99 flex flex-col gap-3 overflow-y-auto md:hidden"
+            transition={{ duration: 0.25 }}
+            className="md:hidden absolute top-full left-0 w-full bg-[#0f111a] px-4 pb-4 flex flex-col gap-3 shadow-lg z-50"
           >
-            {/* Close button */}
-            <button
-              className="self-end mt-4 text-2xl text-white hover:text-teal-400 transition"
-              onClick={() => setMenuOpen(false)}
-              aria-label="Close Menu"
-            >
-              <FaTimes />
-            </button>
-
             <div className="flex flex-col gap-1 mt-2">
               <span className="text-gray-400 text-sm uppercase">
                 Categories
@@ -189,69 +174,51 @@ const Navbar = () => {
                 <Link
                   key={c.documentId}
                   href={`/category/${encodeURIComponent(c.documentId)}`}
-                  className="hover:text-teal-400 transition-colors pl-2 py-2 text-lg"
+                  className="hover:text-teal-400 pl-2"
                   onClick={() => setMenuOpen(false)}
                 >
                   {c.label}
                 </Link>
               ))}
             </div>
-
-            <button
-              onClick={() => {
-                setSearchOpen(true);
-                setMenuOpen(false);
-              }}
-              className="flex items-center gap-2 hover:text-teal-400 transition-colors mt-4 text-lg"
-            >
-              <FaSearch /> Search
-            </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Search modal */}
+      {/* FULLSCREEN SEARCH */}
       <AnimatePresence>
         {searchOpen && (
           <motion.div
-            key="search-modal"
-            initial={{ opacity: 0, y: -25 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -25 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            key="search-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-lg z-100 flex items-start justify-center pt-32 px-4"
           >
-            <form
+            <button
+              onClick={() => setSearchOpen(false)}
+              className="absolute top-6 right-6 text-2xl"
+            >
+              <FaTimes />
+            </button>
+
+            <motion.form
               onSubmit={handleSearchSubmit}
-              className="relative w-full max-w-md px-6"
+              initial={{ scale: 0.9, opacity: 0, y: -20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-2xl"
             >
               <input
+                ref={inputRef}
                 type="text"
-                placeholder="Search posts..."
+                placeholder="Search blogs..."
                 value={searchQuery}
                 autoFocus
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full py-4 pl-5 pr-14 rounded-full bg-gray-800 text-xl text-white shadow-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+                className="w-full p-5 text-xl rounded-xl bg-gray-900 text-white focus:ring-2 focus:ring-teal-500"
               />
-              {/* Submit search */}
-              <button
-                type="submit"
-                className="absolute right-9 top-1/2 -translate-y-1/2 text-teal-400 text-2xl hover:text-teal-300 transition"
-                aria-label="Submit Search"
-              >
-                <FaSearch />
-              </button>
-              {/* Close search */}
-              <button
-                type="button"
-                onClick={() => setSearchOpen(false)}
-                className="absolute -top-10 right-2 text-white text-2xl hover:text-red-500 transition"
-                aria-label="Close Search"
-                tabIndex={0}
-              >
-                <FaTimes />
-              </button>
-            </form>
+            </motion.form>
           </motion.div>
         )}
       </AnimatePresence>
