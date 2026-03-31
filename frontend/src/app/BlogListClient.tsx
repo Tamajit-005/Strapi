@@ -1,22 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { client } from "@/lib/apolloClient";
-import {
-  GET_ALL_POSTS,
-  type GetAllPostsResult,
-  type BlogPost,
-} from "@/lib/queries";
-import Loader from "@/components/Loader";
+import { type BlogPost } from "@/lib/queries";
 import BlogPagination from "@/components/Pagination";
 import { motion } from "framer-motion";
 
-export default function BlogListClient() {
-  const [allPosts, setAllPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface Props {
+  initialPosts: BlogPost[];
+}
+
+// Data is pre-fetched server-side — no Apollo call needed here
+export default function BlogListClient({ initialPosts }: Props) {
+  const [allPosts] = useState<BlogPost[]>(initialPosts);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -25,23 +22,6 @@ export default function BlogListClient() {
   const parsedPage = parseInt(pageParam || "1");
   const currentPage = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
   const pageSize = parseInt(process.env.NEXT_PUBLIC_PAGE_LIMIT || "10");
-
-  useEffect(() => {
-    const fetchPosts = async () => {
-      setLoading(true);
-      try {
-        const { data } = await client.query<GetAllPostsResult>({
-          query: GET_ALL_POSTS,
-        });
-        setAllPosts((data?.blogs ?? []) as BlogPost[]);
-      } catch {
-        setError("Error fetching posts.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPosts();
-  }, []);
 
   const sortedPosts = useMemo(() => {
     return [...allPosts].sort((a, b) => {
@@ -52,14 +32,6 @@ export default function BlogListClient() {
   }, [allPosts]);
 
   const totalPages = Math.max(1, Math.ceil(sortedPosts.length / pageSize));
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      const newParams = new URLSearchParams(searchParams.toString());
-      newParams.set("page", totalPages.toString());
-      router.replace(`?${newParams.toString()}`);
-    }
-  }, [currentPage, totalPages, router, searchParams]);
 
   const currentSlice = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
@@ -75,20 +47,6 @@ export default function BlogListClient() {
     router.replace(`?${newParams.toString()}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
-  if (loading)
-    return (
-      <div className="w-full flex items-center justify-center min-h-screen bg-slate-950">
-        <Loader />
-      </div>
-    );
-
-  if (error)
-    return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-slate-950">
-        <p className="text-red-500 text-center">{error}</p>
-      </div>
-    );
 
   if (!sortedPosts.length)
     return (
