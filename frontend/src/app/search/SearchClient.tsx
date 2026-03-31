@@ -16,8 +16,11 @@ export default function SearchClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const query = (searchParams.get("query") || "").trim().toLowerCase();
+  const rawQuery = (searchParams.get("query") || "").trim().toLowerCase();
   const pageFromUrl = Number(searchParams.get("page") || 1);
+
+  // Only fire the Apollo query 400ms after the user stops typing
+  const [debouncedQuery, setDebouncedQuery] = useState(rawQuery);
 
   const [searchResults, setSearchResults] = useState<
     GetBlogsBySearchResult["blogs"]
@@ -28,10 +31,16 @@ export default function SearchClient() {
 
   const pageSize = 6;
 
-  // Re-fetches on every new query string.
+  // Debounce: wait 400ms after rawQuery stops changing before updating debouncedQuery
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(rawQuery), 400);
+    return () => clearTimeout(timer);
+  }, [rawQuery]);
+
+  // Re-fetches only when debouncedQuery changes.
   // Apollo InMemoryCache (cache-first) means repeat searches = 0 extra Strapi requests.
   useEffect(() => {
-    if (!query) {
+    if (!debouncedQuery) {
       setSearchResults([]);
       return;
     }
@@ -42,7 +51,7 @@ export default function SearchClient() {
         // fetchPolicy inherited from apolloClient defaultOptions (cache-first)
         const { data } = await client.query<GetBlogsBySearchResult>({
           query: GET_BLOGS_BY_SEARCH,
-          variables: { query },
+          variables: { query: debouncedQuery },
         });
         setSearchResults(data?.blogs ?? []);
       } catch {
@@ -52,7 +61,7 @@ export default function SearchClient() {
       }
     };
     run();
-  }, [query]);
+  }, [debouncedQuery]); // ← debouncedQuery, not rawQuery
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(searchResults.length / pageSize)),
@@ -61,7 +70,7 @@ export default function SearchClient() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [query]);
+  }, [debouncedQuery]); // reset page when search term settles
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
@@ -69,10 +78,10 @@ export default function SearchClient() {
 
   useEffect(() => {
     const params = new URLSearchParams();
-    if (query) params.set("query", query);
+    if (debouncedQuery) params.set("query", debouncedQuery);
     params.set("page", String(currentPage));
     router.replace(`/search?${params.toString()}`);
-  }, [currentPage, query, router]); // added router
+  }, [currentPage, debouncedQuery, router]);
 
   const paginatedResults = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -104,10 +113,10 @@ export default function SearchClient() {
           Search Results
         </h1>
 
-        {query ? (
+        {debouncedQuery ? (
           <p className="text-center text-gray-400 mb-6">
             {searchResults.length} results for{" "}
-            <span className="text-teal-400">"{query}"</span>
+            <span className="text-teal-400">"{debouncedQuery}"</span>
           </p>
         ) : (
           <p className="text-center text-gray-400 mb-6">
@@ -164,7 +173,7 @@ export default function SearchClient() {
               currentPage={currentPage}
               totalPages={totalPages}
               basePath="/search"
-              queryString={`query=${encodeURIComponent(query)}`}
+              queryString={`query=${encodeURIComponent(debouncedQuery)}`}
               onPageChange={setCurrentPage}
             />
           </div>

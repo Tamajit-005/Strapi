@@ -12,13 +12,13 @@ export const GET_ALL_POSTS = gql`
       documentId
       slug
       description
-      content
+      # content
 
       category {
         documentId
         name
-        slug
-        description
+        # slug
+        # description
       }
 
       cover {
@@ -27,12 +27,12 @@ export const GET_ALL_POSTS = gql`
 
       author {
         name
-        email
+        # email
       }
 
       writer {
         username
-        email
+        # email
       }
 
       createdAt
@@ -210,11 +210,11 @@ export type GetAllPostsResult = {
     documentId: string;
     slug?: string | null;
     description?: string | null;
-    content?: string | null;
+    // content?: string | null;
     category?: Category[];
     cover?: { url?: string | null } | null;
-    author?: { name: string; email?: string | null } | null;
-    writer?: { username: string; email?: string | null } | null;
+    author?: { name: string /* ; email?: string | null */ } | null;
+    writer?: { username: string /* ; email?: string | null */ } | null;
     createdAt?: string | null;
     updatedAt?: string | null;
   }>;
