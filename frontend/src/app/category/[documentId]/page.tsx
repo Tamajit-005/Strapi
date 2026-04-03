@@ -1,25 +1,27 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { client } from "@/lib/apolloClient";
 import {
-  GET_ALL_CATEGORIES,
-  GET_CATEGORY_BY_DOCUMENT_ID,
-  type GetAllCategoriesResult,
-  type GetCategoryByDocumentIdResult,
-} from "@/lib/queries";
-import type { BlogPost, Category } from "@/lib/types";
+  getAllPosts,
+  getAllCategories,
+  getCategoryById,
+  getPostsByCategory,
+} from "@/lib/buildCache";
+import type { BlogPost } from "@/lib/queries";
+import type { Category } from "@/lib/types";
 import CategoryClient from "./CategoryClient";
 import Loader from "@/components/Loader";
 
 // Fallback ISR window — on-demand revalidation webhook handles instant updates
 export const revalidate = 3600;
 
-// Called once at build — generates a static HTML page per category
+// 1 API call for all category slugs — no per-category calls needed
 export async function generateStaticParams() {
-  const { data } = await client.query<GetAllCategoriesResult>({
-    query: GET_ALL_CATEGORIES,
-  });
-  return (data?.categories ?? []).map((c) => ({ documentId: c.documentId }));
+  // Run both in parallel — neither depends on the other
+  const [, categories] = await Promise.all([
+    getAllPosts(), // pre-warms postsByCategoryCache
+    getAllCategories(), // pre-warms categoriesCache
+  ]);
+  return categories.map((c) => ({ documentId: c.documentId }));
 }
 
 export default async function CategoryPage({
@@ -29,38 +31,29 @@ export default async function CategoryPage({
 }) {
   const { documentId } = await params;
 
-  const { data } = await client.query<GetCategoryByDocumentIdResult>({
-    query: GET_CATEGORY_BY_DOCUMENT_ID,
-    variables: { documentId },
-  });
+  // Ensure caches are warm (no-op if generateStaticParams already ran)
+  await Promise.all([getAllPosts(), getAllCategories()]);
 
-  const cat = data?.category;
+  const cat = getCategoryById(documentId);
   if (!cat) notFound();
 
   const category: Category = {
     documentId: cat.documentId,
     name: cat.name,
-    slug: cat.slug,
-    description: cat.description || "",
+    slug: cat.slug ?? "",
+    description: cat.description ?? "",
   };
 
-  // Sort and map blogs (same logic as the old useEffect)
-  const blogs: BlogPost[] = [...(cat.blogs || [])]
+  // Posts grouped by category — derived from the already-cached posts, 0 extra calls
+  const blogs: BlogPost[] = getPostsByCategory(documentId)
+    .slice()
     .sort(
       (a, b) =>
-        new Date(b.createdAt || "").getTime() -
-        new Date(a.createdAt || "").getTime(),
-    )
-    .map((b) => ({
-      documentId: b.documentId,
-      title: b.title,
-      description: b.description || undefined,
-      createdAt: b.createdAt || undefined,
-      cover: b.cover?.url ? { url: b.cover.url } : undefined,
-    }));
+        new Date(b.createdAt ?? "").getTime() -
+        new Date(a.createdAt ?? "").getTime(),
+    );
 
   return (
-    // Suspense required because CategoryClient uses useSearchParams()
     <Suspense
       fallback={
         <div className="w-full flex flex-col items-center justify-center min-h-screen bg-slate-950">
