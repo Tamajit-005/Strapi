@@ -3,21 +3,21 @@ export interface ImageData {
   url: string;
   alternativeText?: string | null;
   caption?: string | null;
-  width?: number;
-  height?: number;
+  width?: number | null;
+  height?: number | null;
   formats?: Record<string, { url: string; width: number; height: number }>;
 }
 
 // Author interface 
 export interface Author {
   name: string;
-  email?: string;
+  email?: string | null;
 }
 
 // Writer interface
 export interface Writer {
   username: string;
-  email?: string;
+  email?: string | null;
 }
 
 // Category interface
@@ -39,8 +39,8 @@ export interface BlogPost {
   updatedAt?: string;
   publishedAt?: string;
   cover?: ImageData;
-  author?: Author;
-  writer?: Writer;
+  author?: Author | null;
+  writer?: Writer | null;
   category?: Category[];
 }
 
