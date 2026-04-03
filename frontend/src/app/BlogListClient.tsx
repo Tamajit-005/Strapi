@@ -69,7 +69,7 @@ export default function BlogListClient({ initialPosts }: Props) {
           transition={{ duration: 0.6 }}
         >
           <Link href={`/blogs/${featuredPost.documentId}`}>
-            <div className="relative w-full h-[500px] overflow-hidden cursor-pointer group">
+            <div className="relative w-full h-125 overflow-hidden cursor-pointer group">
               {featuredPost.cover?.url && (
                 <img
                   src={
