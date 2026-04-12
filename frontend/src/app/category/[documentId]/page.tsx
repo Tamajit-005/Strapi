@@ -11,16 +11,21 @@ import type { Category } from "@/lib/types";
 import CategoryClient from "./CategoryClient";
 import Loader from "@/components/Loader";
 
-// Fallback ISR window — on-demand revalidation webhook handles instant updates
+// ISR
 export const revalidate = 3600;
 
-// 1 API call for all category slugs — no per-category calls needed
+// Force static rendering (important for CDN + ISR)
+export const dynamic = "force-static";
+
+// Static params
 export async function generateStaticParams() {
-  // Run both in parallel — neither depends on the other
-  const [, categories] = await Promise.all([
-    getAllPosts(), // pre-warms postsByCategoryCache
-    getAllCategories(), // pre-warms categoriesCache
-  ]);
+  const [, categories] = await Promise.all([getAllPosts(), getAllCategories()]);
+
+  // prevent bad cache
+  if (!categories || categories.length === 0) {
+    throw new Error("❌ Failed to fetch categories");
+  }
+
   return categories.map((c) => ({ documentId: c.documentId }));
 }
 
@@ -31,8 +36,15 @@ export default async function CategoryPage({
 }) {
   const { documentId } = await params;
 
-  // Ensure caches are warm (no-op if generateStaticParams already ran)
-  await Promise.all([getAllPosts(), getAllCategories()]);
+  const [posts, categories] = await Promise.all([
+    getAllPosts(),
+    getAllCategories(),
+  ]);
+
+  // prevent bad cache
+  if (!categories || categories.length === 0) {
+    throw new Error("❌ Categories fetch failed");
+  }
 
   const cat = getCategoryById(documentId);
   if (!cat) notFound();
@@ -44,7 +56,6 @@ export default async function CategoryPage({
     description: cat.description ?? "",
   };
 
-  // Posts grouped by category — derived from the already-cached posts, 0 extra calls
   const blogs: BlogPost[] = getPostsByCategory(documentId)
     .slice()
     .sort(

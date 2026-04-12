@@ -46,7 +46,7 @@ export default function BlogPostClient({ post }: Props) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-4xl leading-[60px] text-center font-bold text-teal-400 capitalize"
+          className="text-4xl leading-15 text-center font-bold text-teal-400 capitalize"
         >
           {post.title}
         </motion.h1>
@@ -192,7 +192,7 @@ export default function BlogPostClient({ post }: Props) {
                     alt={alt || "Blog image"}
                     className={
                       className ||
-                      "rounded-lg w-full my-4 object-cover max-h-[500px]"
+                      "rounded-lg w-full my-4 object-cover max-h-125"
                     }
                     loading="lazy"
                     onError={(e) => {

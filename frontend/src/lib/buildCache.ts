@@ -8,18 +8,30 @@ import {
   type Category,
 } from "@/lib/queries";
 
-// ─── Module-level singletons ───────────────────────────────────────────────
-// Node.js modules are singletons within a process.
-// During `next build`, all pages share this same module instance,
-// so whichever page calls first populates the cache — the rest get it free.
-
 let postsCache: BlogPost[] | null = null;
 let categoriesCache: Category[] | null = null;
 
 const postByIdCache = new Map<string, BlogPost>();
 const postsByCategoryCache = new Map<string, BlogPost[]>();
 
-// ─── Mapper ────────────────────────────────────────────────────────────────
+async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === retries - 1) throw err;
+    }
+  }
+  throw new Error("Retry failed");
+}
+
+export function clearBuildCache() {
+  postsCache = null;
+  categoriesCache = null;
+  postByIdCache.clear();
+  postsByCategoryCache.clear();
+}
+
 function mapToBlogPost(
   blog: GetAllPostsFullResult["blogs"][number],
 ): BlogPost {
@@ -45,35 +57,40 @@ function mapToBlogPost(
   };
 }
 
-// ─── Posts ─────────────────────────────────────────────────────────────────
-// 1 Strapi call total for the entire build — all post pages reuse this cache
-
 export async function getAllPosts(): Promise<BlogPost[]> {
   if (postsCache) return postsCache;
 
-  const { data } = await client.query<GetAllPostsFullResult>({
-    query: GET_ALL_POSTS_FULL,
-  });
+  try {
+    const { data } = await fetchWithRetry(() =>
+      client.query<GetAllPostsFullResult>({
+        query: GET_ALL_POSTS_FULL,
+        fetchPolicy: "no-cache",
+      }),
+    );
 
-  const posts = (data?.blogs ?? []).map(mapToBlogPost);
-  postsCache = posts;
+    const posts = (data?.blogs ?? []).map(mapToBlogPost);
+    postsCache = posts;
 
-  // Populate secondary lookup caches in the same pass
-  postByIdCache.clear();
-  postsByCategoryCache.clear();
+    postByIdCache.clear();
+    postsByCategoryCache.clear();
 
-  for (const post of posts) {
-    postByIdCache.set(post.documentId, post);
+    for (const post of posts) {
+      postByIdCache.set(post.documentId, post);
 
-    for (const cat of post.category ?? []) {
-      if (!postsByCategoryCache.has(cat.documentId)) {
-        postsByCategoryCache.set(cat.documentId, []);
+      for (const cat of post.category ?? []) {
+        if (!postsByCategoryCache.has(cat.documentId)) {
+          postsByCategoryCache.set(cat.documentId, []);
+        }
+        postsByCategoryCache.get(cat.documentId)!.push(post);
       }
-      postsByCategoryCache.get(cat.documentId)!.push(post);
     }
-  }
 
-  return posts;
+    return posts;
+  } catch (err) {
+    console.error("❌ getAllPosts failed:", err);
+    postsCache = [];
+    return [];
+  }
 }
 
 export function getPostById(documentId: string): BlogPost | undefined {
@@ -84,24 +101,30 @@ export function getPostsByCategory(categoryDocumentId: string): BlogPost[] {
   return postsByCategoryCache.get(categoryDocumentId) ?? [];
 }
 
-// ─── Categories ────────────────────────────────────────────────────────────
-// 1 Strapi call total — category pages reuse this cache
-
 export async function getAllCategories(): Promise<Category[]> {
   if (categoriesCache) return categoriesCache;
 
-  const { data } = await client.query<GetAllCategoriesResult>({
-    query: GET_ALL_CATEGORIES,
-  });
+  try {
+    const { data } = await fetchWithRetry(() =>
+      client.query<GetAllCategoriesResult>({
+        query: GET_ALL_CATEGORIES,
+        fetchPolicy: "no-cache",
+      }),
+    );
 
-  categoriesCache = (data?.categories ?? []).map((c) => ({
-    documentId: c.documentId,
-    name: c.name,
-    slug: c.slug,
-    description: c.description ?? undefined,
-  }));
+    categoriesCache = (data?.categories ?? []).map((c) => ({
+      documentId: c.documentId,
+      name: c.name,
+      slug: c.slug,
+      description: c.description ?? undefined,
+    }));
 
-  return categoriesCache;
+    return categoriesCache;
+  } catch (err) {
+    console.error("❌ getAllCategories failed:", err);
+    categoriesCache = [];
+    return [];
+  }
 }
 
 export function getCategoryById(documentId: string): Category | undefined {

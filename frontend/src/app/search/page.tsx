@@ -1,8 +1,16 @@
 import React, { Suspense } from "react";
 import SearchClient from "./SearchClient";
 import Loader from "@/components/Loader";
+import { getAllPosts } from "@/lib/buildCache";
 
-export default function SearchPage() {
+// Optional but recommended for consistency
+export const dynamic = "force-static";
+export const revalidate = 60;
+
+export default async function SearchPage() {
+  // Fetch ALL posts once (cached via buildCache)
+  const allPosts = await getAllPosts();
+
   return (
     <Suspense
       fallback={
@@ -11,7 +19,7 @@ export default function SearchPage() {
         </div>
       }
     >
-      <SearchClient />
+      <SearchClient allPosts={allPosts} />
     </Suspense>
   );
 }
