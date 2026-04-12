@@ -4,17 +4,18 @@ import { getAllPosts } from "@/lib/buildCache";
 import type { BlogPost } from "@/lib/queries";
 import BlogListClient from "./BlogListClient";
 
-// Fallback ISR window — on-demand revalidation webhook handles instant updates
+// ISR window
 export const revalidate = 60;
 
-export default async function Page() {
-  let initialPosts: BlogPost[] = [];
+// Force static rendering (good for CDN)
+export const dynamic = "force-static";
 
-  try {
-    // Cache hit if blogs/[slug] page built first — 0 extra Strapi calls
-    initialPosts = await getAllPosts();
-  } catch {
-    // Server fetch failed — BlogListClient will show empty state
+export default async function Page() {
+  const initialPosts: BlogPost[] = await getAllPosts();
+
+  // ❌ If data is empty → throw error (prevents bad cache)
+  if (!initialPosts || initialPosts.length === 0) {
+    throw new Error("❌ Failed to fetch posts — preventing empty cache");
   }
 
   return (
