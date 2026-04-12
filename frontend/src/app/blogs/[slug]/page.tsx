@@ -6,6 +6,9 @@ import BlogPostClient from "./BlogPostClient";
 // ISR window
 export const revalidate = 3600;
 
+// Enable dynamic params (important for ISR + fallback: 'blocking')
+export const dynamicParams = true;
+
 // Force static rendering (important for CDN + ISR)
 export const dynamic = "force-static";
 
