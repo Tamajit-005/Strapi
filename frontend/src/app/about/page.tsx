@@ -31,12 +31,10 @@ export default function AboutPage() {
           </p>
 
           <p>
-            We are{" "}
-            <span className="text-teal-400 font-medium">
-              Tamajit and Mayukh
-            </span>
-            , two B.Tech students passionate about web development, system
-            design, and building real-world applications beyond textbooks.
+            We are <span className="text-teal-400 font-medium">Tamajit</span>{" "}
+            and <span className="text-teal-400 font-medium">Mayukh</span>, two
+            B.Tech students passionate about web development, system design, and
+            building real-world applications beyond textbooks.
           </p>
 
           <p>
