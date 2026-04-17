@@ -3,65 +3,50 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { client } from "@/lib/apolloClient";
-import {
-  GET_BLOGS_BY_SEARCH,
-  type GetBlogsBySearchResult,
-} from "@/lib/queries";
 import Loader from "@/components/Loader";
 import BlogPagination from "@/components/Pagination";
 import { motion } from "framer-motion";
+import type { BlogPost } from "@/lib/types";
 
-export default function SearchClient() {
+interface Props {
+  allPosts: BlogPost[];
+}
+
+export default function SearchClient({ allPosts }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const rawQuery = (searchParams.get("query") || "").trim().toLowerCase();
   const pageFromUrl = Number(searchParams.get("page") || 1);
 
-  // Only fire the Apollo query 400ms after the user stops typing
   const [debouncedQuery, setDebouncedQuery] = useState(rawQuery);
-
-  const [searchResults, setSearchResults] = useState<
-    GetBlogsBySearchResult["blogs"]
-  >([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<BlogPost[]>([]);
   const [currentPage, setCurrentPage] = useState(pageFromUrl);
 
   const pageSize = 6;
 
-  // Debounce: wait 400ms after rawQuery stops changing before updating debouncedQuery
+  // Debounce input
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(rawQuery), 400);
     return () => clearTimeout(timer);
   }, [rawQuery]);
 
-  // Re-fetches only when debouncedQuery changes.
-  // Apollo InMemoryCache (cache-first) means repeat searches = 0 extra Strapi requests.
+  // LOCAL SEARCH (NO API)
   useEffect(() => {
     if (!debouncedQuery) {
       setSearchResults([]);
       return;
     }
 
-    const run = async () => {
-      setLoading(true);
-      try {
-        // fetchPolicy inherited from apolloClient defaultOptions (cache-first)
-        const { data } = await client.query<GetBlogsBySearchResult>({
-          query: GET_BLOGS_BY_SEARCH,
-          variables: { query: debouncedQuery },
-        });
-        setSearchResults(data?.blogs ?? []);
-      } catch {
-        setError("Error searching blogs.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-  }, [debouncedQuery]); // ← debouncedQuery, not rawQuery
+    const results = allPosts.filter((post) => {
+      const title = post.title?.toLowerCase() || "";
+      const desc = post.description?.toLowerCase() || "";
+
+      return title.includes(debouncedQuery) || desc.includes(debouncedQuery);
+    });
+
+    setSearchResults(results);
+  }, [debouncedQuery, allPosts]);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(searchResults.length / pageSize)),
@@ -70,7 +55,7 @@ export default function SearchClient() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedQuery]); // reset page when search term settles
+  }, [debouncedQuery]);
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
@@ -88,19 +73,13 @@ export default function SearchClient() {
     return searchResults.slice(start, start + pageSize);
   }, [searchResults, currentPage, pageSize]);
 
-  if (loading)
+  if (!allPosts.length) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
-        <Loader />
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-gray-400">
+        No data available
       </div>
     );
-
-  if (error)
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-red-500">
-        {error}
-      </div>
-    );
+  }
 
   return (
     <motion.div

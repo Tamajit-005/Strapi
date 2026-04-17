@@ -3,18 +3,26 @@ import { client } from "@/lib/apolloClient";
 import {
   GET_POST_BY_DOCUMENT_ID,
   type GetPostByDocumentIdResult,
-  type BlogPost,
 } from "@/lib/queries";
 import { getAllPosts, getPostById } from "@/lib/buildCache";
+import type { BlogPost } from "@/lib/types";
 import BlogPostClient from "./BlogPostClient";
 
-// Fallback ISR window — on-demand revalidation webhook handles instant updates
+// ISR window
 export const revalidate = 3600;
 
-// 1 API call for all slugs — populates the entire build cache
+// Let Next.js generate pages that were not prebuilt
+export const dynamicParams = true;
+
+// Keep the page static when possible
+export const dynamic = "force-static";
+
 export async function generateStaticParams() {
   const posts = await getAllPosts();
-  return posts.map((p) => ({ slug: p.documentId }));
+
+  return posts.map((p) => ({
+    slug: p.documentId,
+  }));
 }
 
 export default async function BlogPostPage({
@@ -24,19 +32,22 @@ export default async function BlogPostPage({
 }) {
   const { slug } = await params;
 
-  // Cache hit → 0 API calls (normal build after generateStaticParams ran)
   let post: BlogPost | undefined = getPostById(slug);
 
-  // Cache miss → 1 API call (on-demand revalidation via webhook)
+  // If cache missed, fetch this single post once
   if (!post) {
     const { data } = await client.query<GetPostByDocumentIdResult>({
       query: GET_POST_BY_DOCUMENT_ID,
       variables: { documentId: slug },
+      fetchPolicy: "no-cache",
     });
 
-    if (!data?.blog) notFound();
+    if (!data?.blog) {
+      notFound();
+    }
 
     const blog = data.blog;
+
     post = {
       documentId: slug,
       title: blog.title,
