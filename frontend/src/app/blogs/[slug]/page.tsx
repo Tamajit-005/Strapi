@@ -8,21 +8,17 @@ import { getAllPosts, getPostById } from "@/lib/buildCache";
 import type { BlogPost } from "@/lib/types";
 import BlogPostClient from "./BlogPostClient";
 
-// ISR window
+// ISR fallback window — webhook handles instant updates
 export const revalidate = 3600;
 
-// Let Next.js generate pages that were not prebuilt
+// Allow new posts (published after last build) to be rendered on first visit
 export const dynamicParams = true;
 
-// Keep the page static when possible
-export const dynamic = "force-static";
+// Pre-render all known posts at build time for best performance and SEO
 
 export async function generateStaticParams() {
   const posts = await getAllPosts();
-
-  return posts.map((p) => ({
-    slug: p.documentId,
-  }));
+  return posts.map((p) => ({ slug: p.documentId }));
 }
 
 export default async function BlogPostPage({
@@ -32,9 +28,10 @@ export default async function BlogPostPage({
 }) {
   const { slug } = await params;
 
+  // Build-time: cache hit → 0 Strapi calls
+  // Runtime cold-start: cache miss → fallback fetch below
   let post: BlogPost | undefined = getPostById(slug);
 
-  // If cache missed, fetch this single post once
   if (!post) {
     const { data } = await client.query<GetPostByDocumentIdResult>({
       query: GET_POST_BY_DOCUMENT_ID,
@@ -42,9 +39,7 @@ export default async function BlogPostPage({
       fetchPolicy: "no-cache",
     });
 
-    if (!data?.blog) {
-      notFound();
-    }
+    if (!data?.blog) notFound();
 
     const blog = data.blog;
 
