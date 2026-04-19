@@ -3,13 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
-      // Allow ALL HTTPS images (production - Vercel, CDN, etc.)
-      {
-        protocol: "https",
-        hostname: "**",
-      },
-
-      // Allow ALL HTTP images (development - Strapi running on localhost)
+      { protocol: "https", hostname: "**" },
       {
         protocol: "http",
         hostname: "localhost",
@@ -17,6 +11,34 @@ const nextConfig: NextConfig = {
         pathname: "/uploads/**",
       },
     ],
+  },
+
+  async headers() {
+    return [
+      
+      // ❌ Do NOT cache APIs
+      {
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store",
+          },
+        ],
+      },
+
+      // ✅ Cache everything else
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value:
+              "public, max-age=0, s-maxage=259200, stale-while-revalidate=120",
+          },
+        ],
+      },
+    ];
   },
 };
 
