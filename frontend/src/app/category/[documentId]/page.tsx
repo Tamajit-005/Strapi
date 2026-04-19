@@ -11,17 +11,11 @@ import type { Category } from "@/lib/types";
 import CategoryClient from "./CategoryClient";
 import Loader from "@/components/Loader";
 
-// ISR
 export const revalidate = 3600;
 
-// Force static rendering (important for CDN + ISR)
-export const dynamic = "force-static";
-
-// Static params
 export async function generateStaticParams() {
   const [, categories] = await Promise.all([getAllPosts(), getAllCategories()]);
 
-  // prevent bad cache
   if (!categories || categories.length === 0) {
     throw new Error("❌ Failed to fetch categories");
   }
@@ -36,16 +30,10 @@ export default async function CategoryPage({
 }) {
   const { documentId } = await params;
 
-  const [posts, categories] = await Promise.all([
-    getAllPosts(),
-    getAllCategories(),
-  ]);
+  // Pre-warm caches in parallel
+  await Promise.all([getAllPosts(), getAllCategories()]);
 
-  // prevent bad cache
-  if (!categories || categories.length === 0) {
-    throw new Error("❌ Categories fetch failed");
-  }
-
+  // Now safe — cache is guaranteed warm
   const cat = getCategoryById(documentId);
   if (!cat) notFound();
 
