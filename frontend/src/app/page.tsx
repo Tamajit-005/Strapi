@@ -4,7 +4,7 @@ import { getAllPosts } from "@/lib/buildCache";
 import type { BlogPost } from "@/lib/queries";
 import BlogListClient from "./BlogListClient";
 
-export const revalidate = 60;
+export const revalidate = 3600; // 1 hour
 
 export default async function Page() {
   const initialPosts: BlogPost[] = await getAllPosts();
