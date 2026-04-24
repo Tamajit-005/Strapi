@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { client } from "@/lib/apolloClient";
-import { clearBuildCache } from "@/lib/buildCache";
+import { clearBuildCache, getAllCategories } from "@/lib/buildCache";
 
 async function purgeCloudflareCache(paths: string[]) {
   const zoneId = process.env.CLOUDFLARE_ZONE_ID;
@@ -46,24 +46,37 @@ export async function POST(request: NextRequest) {
   await client.clearStore();
   clearBuildCache();
 
-  // 2. Revalidate Vercel ISR
+  /* 2. Fetch all categories fresh AFTER clearing cache
+        Safety net: Strapi webhooks sometimes send empty category arrays
+        on republish/unpublish events — this ensures all category pages
+        always get purged regardless of what the webhook body contains.*/
+  const allCategories = await getAllCategories();
+
+  // 3. Revalidate Vercel ISR
   revalidatePath("/");
   revalidatePath("/blogs/[slug]", "page");
   revalidatePath("/category/[documentId]", "page");
   revalidatePath("/search");
 
-  // 3. Purge Cloudflare edge cache
-  const pathsToPurge = ["/", "/search"];
-  if (slug) pathsToPurge.push(`/blogs/${slug}`);
+  // 4. Build Cloudflare purge list using a Set to avoid duplicates
+  const pathsToPurge = new Set<string>(["/", "/search"]);
+
+  if (slug) pathsToPurge.add(`/blogs/${slug}`);
+
   for (const cat of categoryDocIds) {
-    pathsToPurge.push(`/category/${cat.documentId}`);
+    pathsToPurge.add(`/category/${cat.documentId}`);
   }
 
-  const cfResult = await purgeCloudflareCache(pathsToPurge);
+  // Also purge all category pages to be safe, since we can't trust the webhook payload
+  for (const cat of allCategories) {
+    pathsToPurge.add(`/category/${cat.documentId}`);
+  }
+
+  const cfResult = await purgeCloudflareCache([...pathsToPurge]);
 
   return NextResponse.json({
     revalidated: true,
-    purged: pathsToPurge,
+    purged: [...pathsToPurge],
     cloudflare: cfResult,
     now: Date.now(),
   });
