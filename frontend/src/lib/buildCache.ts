@@ -15,6 +15,14 @@ let categoriesCache: Category[] | null = null;
 let postsFetchPromise: Promise<BlogPost[]> | null = null;
 let categoriesFetchPromise: Promise<Category[]> | null = null;
 
+// Timestamps to track when cache was last successfully populated
+// Used to serve stale data when Strapi is down (free plan cold starts)
+let postsCachedAt: number = 0;
+let categoriesCachedAt: number = 0;
+
+// Must match revalidate = 3600 in page.tsx
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
 const postByIdCache = new Map<string, BlogPost>();
 const postsByCategoryCache = new Map<string, BlogPost[]>();
 
@@ -34,6 +42,8 @@ export function clearBuildCache() {
   categoriesCache = null;
   postsFetchPromise = null;
   categoriesFetchPromise = null;
+  postsCachedAt = 0;
+  categoriesCachedAt = 0;
   postByIdCache.clear();
   postsByCategoryCache.clear();
 }
@@ -59,8 +69,11 @@ function mapToBlogPost(blog: GetAllPostsFullResult["blogs"][number]): BlogPost {
 }
 
 export async function getAllPosts(): Promise<BlogPost[]> {
-  // Return cached result immediately
-  if (postsCache) return postsCache;
+  const now = Date.now();
+
+  // Return cache if it exists AND is still within TTL
+  // After TTL expires, fall through to re-fetch even if postsCache is non-null
+  if (postsCache && now - postsCachedAt < CACHE_TTL_MS) return postsCache;
 
   // Deduplicate: if a fetch is already in-flight, wait for it instead of firing a second GraphQL request
   if (postsFetchPromise) return postsFetchPromise;
@@ -77,11 +90,13 @@ export async function getAllPosts(): Promise<BlogPost[]> {
       const posts = (data?.blogs ?? []).map(mapToBlogPost);
 
       if (posts.length === 0 && !data?.blogs) {
-        console.warn("⚠️ getAllPosts: empty response from Strapi, not caching");
+        console.warn("⚠️ getAllPosts: empty response from Strapi, keeping stale cache");
+        // Strapi returned nothing — keep whatever we had before
         return postsCache ?? [];
       }
 
       postsCache = posts;
+      postsCachedAt = Date.now(); // ← stamp successful fetch time
       postByIdCache.clear();
       postsByCategoryCache.clear();
 
@@ -97,10 +112,14 @@ export async function getAllPosts(): Promise<BlogPost[]> {
 
       return posts;
     } catch (err) {
-      console.error("❌ getAllPosts failed:", err);
+      console.error("❌ getAllPosts failed — serving stale cache:", err);
+      // Strapi is down (cold start on free plan):
+      // - Serve existing stale data so pages don't go empty
+      // - Stamp the time so we don't hammer a sleeping Strapi on every request for the next hour — wait for next TTL window to retry
+      postsCachedAt = Date.now();
       return postsCache ?? [];
     } finally {
-      // Clear the in-flight promise so future calls after cache expiry can trigger a new fetch
+      // Clear in-flight promise so the next TTL window can trigger a fresh fetch
       postsFetchPromise = null;
     }
   })();
@@ -117,7 +136,10 @@ export function getPostsByCategory(categoryDocumentId: string): BlogPost[] {
 }
 
 export async function getAllCategories(): Promise<Category[]> {
-  if (categoriesCache) return categoriesCache;
+  const now = Date.now();
+
+  // Return cache if it exists AND is still within TTL
+  if (categoriesCache && now - categoriesCachedAt < CACHE_TTL_MS) return categoriesCache;
 
   // Deduplicate in-flight category fetches
   if (categoriesFetchPromise) return categoriesFetchPromise;
@@ -139,14 +161,17 @@ export async function getAllCategories(): Promise<Category[]> {
       }));
 
       if (categories.length === 0 && !data?.categories) {
-        console.warn("⚠️ getAllCategories: empty response from Strapi, not caching");
+        console.warn("⚠️ getAllCategories: empty response from Strapi, keeping stale cache");
         return categoriesCache ?? [];
       }
 
       categoriesCache = categories;
+      categoriesCachedAt = Date.now(); // ← stamp successful fetch time
       return categoriesCache;
     } catch (err) {
-      console.error("❌ getAllCategories failed:", err);
+      console.error("❌ getAllCategories failed — serving stale cache:", err);
+      // Same pattern: serve stale, stamp time to prevent retry storm
+      categoriesCachedAt = Date.now();
       return categoriesCache ?? [];
     } finally {
       categoriesFetchPromise = null;
