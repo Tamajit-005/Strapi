@@ -9,7 +9,7 @@ import type { BlogPost } from "@/lib/types";
 import BlogPostClient from "./BlogPostClient";
 
 // ISR fallback window — webhook handles instant updates
-export const revalidate = 3600;
+export const revalidate = 86400; // 24 hours
 
 // Allow new posts (published after last build) to be rendered on first visit
 export const dynamicParams = true;

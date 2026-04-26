@@ -6,7 +6,7 @@ import type { BlogPost } from "@/lib/types";
 
 // Rebuild this static page at most once per hour (ISR fallback)
 // Webhook revalidation handles instant updates when posts change
-export const revalidate = 3600;
+export const revalidate = 86400; // 24 hours
 
 // Force static rendering (important for CDN + ISR)
 
