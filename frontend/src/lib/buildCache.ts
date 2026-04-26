@@ -21,7 +21,7 @@ let postsCachedAt: number = 0;
 let categoriesCachedAt: number = 0;
 
 // Must match revalidate = 3600 in page.tsx
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 const postByIdCache = new Map<string, BlogPost>();
 const postsByCategoryCache = new Map<string, BlogPost[]>();

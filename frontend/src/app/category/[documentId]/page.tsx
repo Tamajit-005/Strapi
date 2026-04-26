@@ -11,7 +11,7 @@ import type { Category } from "@/lib/types";
 import CategoryClient from "./CategoryClient";
 import Loader from "@/components/Loader";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // 24 hours
 
 export async function generateStaticParams() {
   const [, categories] = await Promise.all([getAllPosts(), getAllCategories()]);
