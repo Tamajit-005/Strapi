@@ -1,29 +1,25 @@
-import { client } from "@/lib/apolloClient";
+import { client } from "@/sanity/client";
 import {
-  GET_ALL_POSTS_FULL,
-  GET_ALL_CATEGORIES,
-  type GetAllPostsFullResult,
-  type GetAllCategoriesResult,
-  type BlogPost,
-  type Category,
+  ALL_POSTS_FULL_QUERY,
+  ALL_CATEGORIES_QUERY,
+  POST_BY_SLUG_QUERY,
+  POSTS_BY_CATEGORY_QUERY,
+  SEARCH_POSTS_QUERY,
 } from "@/lib/queries";
+import type { BlogPost, Category } from "@/lib/types";
 
 let postsCache: BlogPost[] | null = null;
 let categoriesCache: Category[] | null = null;
 
-// In-flight deduplication: if a fetch is already running, reuse the same promise
 let postsFetchPromise: Promise<BlogPost[]> | null = null;
 let categoriesFetchPromise: Promise<Category[]> | null = null;
 
-// Timestamps to track when cache was last successfully populated
-// Used to serve stale data when Strapi is down (free plan cold starts)
 let postsCachedAt: number = 0;
 let categoriesCachedAt: number = 0;
 
-// Must match revalidate = 3600 in page.tsx
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_TTL_MS = 0; // TEMP: cache disabled for dev — restore to 24*60*60*1000 before production
 
-const postByIdCache = new Map<string, BlogPost>();
+const postBySlugCache = new Map<string, BlogPost>();
 const postsByCategoryCache = new Map<string, BlogPost[]>();
 
 async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
@@ -44,82 +40,47 @@ export function clearBuildCache() {
   categoriesFetchPromise = null;
   postsCachedAt = 0;
   categoriesCachedAt = 0;
-  postByIdCache.clear();
+  postBySlugCache.clear();
   postsByCategoryCache.clear();
-}
-
-function mapToBlogPost(blog: GetAllPostsFullResult["blogs"][number]): BlogPost {
-  return {
-    documentId: blog.documentId,
-    title: blog.title,
-    slug: blog.slug ?? undefined,
-    description: blog.description ?? undefined,
-    content: blog.content ?? undefined,
-    createdAt: blog.createdAt ?? undefined,
-    updatedAt: blog.updatedAt ?? undefined,
-    cover: blog.cover?.url ? { url: blog.cover.url } : undefined,
-    author: blog.author
-      ? { name: blog.author.name, email: blog.author.email ?? undefined }
-      : undefined,
-    writer: blog.writer
-      ? { username: blog.writer.username, email: blog.writer.email ?? undefined }
-      : undefined,
-    category: blog.category ?? undefined,
-  };
 }
 
 export async function getAllPosts(): Promise<BlogPost[]> {
   const now = Date.now();
-
-  // Return cache if it exists AND is still within TTL
-  // After TTL expires, fall through to re-fetch even if postsCache is non-null
   if (postsCache && now - postsCachedAt < CACHE_TTL_MS) return postsCache;
-
-  // Deduplicate: if a fetch is already in-flight, wait for it instead of firing a second GraphQL request
   if (postsFetchPromise) return postsFetchPromise;
 
   postsFetchPromise = (async () => {
     try {
-      const { data } = await fetchWithRetry(() =>
-        client.query<GetAllPostsFullResult>({
-          query: GET_ALL_POSTS_FULL,
-          fetchPolicy: "no-cache",
-        }),
+      const posts = await fetchWithRetry(() =>
+        client.fetch<BlogPost[]>(ALL_POSTS_FULL_QUERY, {}, { cache: "no-store" } as any),
       );
 
-      const posts = (data?.blogs ?? []).map(mapToBlogPost);
-
-      if (posts.length === 0 && !data?.blogs) {
-        console.warn("⚠️ getAllPosts: empty response from Strapi, keeping stale cache");
-        // Strapi returned nothing — keep whatever we had before
+      if (!posts || posts.length === 0) {
+        console.warn("⚠️ getAllPosts: empty response from Sanity, keeping stale cache");
         return postsCache ?? [];
       }
 
       postsCache = posts;
-      postsCachedAt = Date.now(); // ← stamp successful fetch time
-      postByIdCache.clear();
+      postsCachedAt = Date.now();
+      postBySlugCache.clear();
       postsByCategoryCache.clear();
 
       for (const post of posts) {
-        postByIdCache.set(post.documentId, post);
-        for (const cat of post.category ?? []) {
-          if (!postsByCategoryCache.has(cat.documentId)) {
-            postsByCategoryCache.set(cat.documentId, []);
+        if (post.slug) postBySlugCache.set(post.slug, post);
+        for (const cat of post.categories ?? []) {
+          if (!postsByCategoryCache.has(cat.slug)) {
+            postsByCategoryCache.set(cat.slug, []);
           }
-          postsByCategoryCache.get(cat.documentId)!.push(post);
+          postsByCategoryCache.get(cat.slug)!.push(post);
         }
       }
 
       return posts;
     } catch (err) {
       console.error("❌ getAllPosts failed — serving stale cache:", err);
-      // Strapi is down (cold start on free plan):
-      // - Serve existing stale data so pages don't go empty
-      // - Stamp the time so we don't hammer a sleeping Strapi on every request for the next hour — wait for next TTL window to retry
       postsCachedAt = Date.now();
       return postsCache ?? [];
     } finally {
-      // Clear in-flight promise so the next TTL window can trigger a fresh fetch
       postsFetchPromise = null;
     }
   })();
@@ -127,50 +88,52 @@ export async function getAllPosts(): Promise<BlogPost[]> {
   return postsFetchPromise;
 }
 
-export function getPostById(documentId: string): BlogPost | undefined {
-  return postByIdCache.get(documentId);
+export function getPostBySlug(slug: string): BlogPost | undefined {
+  return postBySlugCache.get(slug);
 }
 
-export function getPostsByCategory(categoryDocumentId: string): BlogPost[] {
-  return postsByCategoryCache.get(categoryDocumentId) ?? [];
+// Backwards-compat alias — old code used documentId, now slug
+export const getPostById = getPostBySlug;
+
+export function getPostsByCategory(categorySlug: string): BlogPost[] {
+  return postsByCategoryCache.get(categorySlug) ?? [];
+}
+
+export async function getPostBySlugFetch(slug: string): Promise<BlogPost | null> {
+  try {
+    const post = await client.fetch<BlogPost | null>(
+      POST_BY_SLUG_QUERY,
+      { slug },
+      { cache: "no-store" } as any,
+    );
+    return post;
+  } catch (err) {
+    console.error(`❌ getPostBySlugFetch(${slug}) failed:`, err);
+    return getPostBySlug(slug) ?? null;
+  }
 }
 
 export async function getAllCategories(): Promise<Category[]> {
   const now = Date.now();
-
-  // Return cache if it exists AND is still within TTL
   if (categoriesCache && now - categoriesCachedAt < CACHE_TTL_MS) return categoriesCache;
-
-  // Deduplicate in-flight category fetches
   if (categoriesFetchPromise) return categoriesFetchPromise;
 
   categoriesFetchPromise = (async () => {
     try {
-      const { data } = await fetchWithRetry(() =>
-        client.query<GetAllCategoriesResult>({
-          query: GET_ALL_CATEGORIES,
-          fetchPolicy: "no-cache",
-        }),
+      const categories = await fetchWithRetry(() =>
+        client.fetch<Category[]>(ALL_CATEGORIES_QUERY, {}, { next: { revalidate: 86400 } }),
       );
 
-      const categories = (data?.categories ?? []).map((c) => ({
-        documentId: c.documentId,
-        name: c.name,
-        slug: c.slug,
-        description: c.description ?? undefined,
-      }));
-
-      if (categories.length === 0 && !data?.categories) {
-        console.warn("⚠️ getAllCategories: empty response from Strapi, keeping stale cache");
+      if (!categories || categories.length === 0) {
+        console.warn("⚠️ getAllCategories: empty response from Sanity, keeping stale cache");
         return categoriesCache ?? [];
       }
 
       categoriesCache = categories;
-      categoriesCachedAt = Date.now(); // ← stamp successful fetch time
+      categoriesCachedAt = Date.now();
       return categoriesCache;
     } catch (err) {
       console.error("❌ getAllCategories failed — serving stale cache:", err);
-      // Same pattern: serve stale, stamp time to prevent retry storm
       categoriesCachedAt = Date.now();
       return categoriesCache ?? [];
     } finally {
@@ -181,6 +144,38 @@ export async function getAllCategories(): Promise<Category[]> {
   return categoriesFetchPromise;
 }
 
-export function getCategoryById(documentId: string): Category | undefined {
-  return categoriesCache?.find((c) => c.documentId === documentId);
+export function getCategoryBySlug(slug: string): Category | undefined {
+  return categoriesCache?.find((c) => c.slug === slug);
+}
+
+// Backwards-compat alias
+export const getCategoryById = getCategoryBySlug;
+
+export async function searchPosts(searchQuery: string): Promise<BlogPost[]> {
+  if (!searchQuery.trim()) return [];
+  try {
+    const posts = await client.fetch<BlogPost[]>(
+      SEARCH_POSTS_QUERY,
+      { query: searchQuery } as any,
+      { cache: "no-store" } as any,
+    );
+    return posts ?? [];
+  } catch (err) {
+    console.error(`❌ searchPosts(${searchQuery}) failed:`, err);
+    return [];
+  }
+}
+
+export async function getPostsByCategoryFetch(categorySlug: string): Promise<BlogPost[]> {
+  try {
+    const posts = await client.fetch<BlogPost[]>(
+      POSTS_BY_CATEGORY_QUERY,
+      { slug: categorySlug },
+      { cache: "no-store" } as any,
+    );
+    return posts ?? [];
+  } catch (err) {
+    console.error(`❌ getPostsByCategoryFetch(${categorySlug}) failed:`, err);
+    return getPostsByCategory(categorySlug);
+  }
 }

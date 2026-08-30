@@ -12,7 +12,7 @@ const geistMono = { variable: "--font-geist-mono" };
 export const metadata: Metadata = {
   title: "POST PALETTE",
   description:
-    "Your go-to resource for all things Strapi—explore best practices, tips, and community insights to elevate your projects",
+    "Your go-to resource for modern web development — explore best practices, tips, and community insights to elevate your projects",
 };
 
 export default function RootLayout({

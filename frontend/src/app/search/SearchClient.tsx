@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import Loader from "@/components/Loader";
 import BlogPagination from "@/components/Pagination";
 import { motion } from "framer-motion";
 import type { BlogPost } from "@/lib/types";
+import { urlFor } from "@/sanity/image";
 
 interface Props {
   allPosts: BlogPost[];
@@ -25,26 +25,21 @@ export default function SearchClient({ allPosts }: Props) {
 
   const pageSize = 6;
 
-  // Debounce input
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(rawQuery), 400);
     return () => clearTimeout(timer);
   }, [rawQuery]);
 
-  // LOCAL SEARCH (NO API)
   useEffect(() => {
     if (!debouncedQuery) {
       setSearchResults([]);
       return;
     }
-
     const results = allPosts.filter((post) => {
       const title = post.title?.toLowerCase() || "";
       const desc = post.description?.toLowerCase() || "";
-
       return title.includes(debouncedQuery) || desc.includes(debouncedQuery);
     });
-
     setSearchResults(results);
   }, [debouncedQuery, allPosts]);
 
@@ -82,25 +77,15 @@ export default function SearchClient({ allPosts }: Props) {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="bg-slate-950 min-h-screen text-gray-200"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-slate-950 min-h-screen text-gray-200">
       <div className="max-w-5xl mx-auto p-6">
-        <h1 className="text-4xl font-bold text-center text-teal-500 mb-4">
-          Search Results
-        </h1>
-
+        <h1 className="text-4xl font-bold text-center text-teal-500 mb-4">Search Results</h1>
         {debouncedQuery ? (
           <p className="text-center text-gray-400 mb-6">
-            {searchResults.length} results for{" "}
-            <span className="text-teal-400">"{debouncedQuery}"</span>
+            {searchResults.length} results for <span className="text-teal-400">"{debouncedQuery}"</span>
           </p>
         ) : (
-          <p className="text-center text-gray-400 mb-6">
-            Enter a search term to find posts.
-          </p>
+          <p className="text-center text-gray-400 mb-6">Enter a search term to find posts.</p>
         )}
 
         <motion.div
@@ -111,35 +96,23 @@ export default function SearchClient({ allPosts }: Props) {
         >
           {paginatedResults.map((post) => (
             <motion.div
-              key={post.documentId}
-              variants={{
-                hidden: { opacity: 0, y: 40 },
-                show: { opacity: 1, y: 0 },
-              }}
+              key={post._id}
+              variants={{ hidden: { opacity: 0, y: 40 }, show: { opacity: 1, y: 0 } }}
               whileHover={{ y: -8, scale: 1.02 }}
               className="bg-gray-900 rounded-lg overflow-hidden shadow-md"
             >
-              <Link href={`/blogs/${post.documentId}`}>
+              <Link href={`/blogs/${post.slug}`}>
                 <div className="relative h-40 w-full">
-                  <img
-                    src={
-                      post.cover?.url?.startsWith("http")
-                        ? post.cover.url
-                        : `${process.env.NEXT_PUBLIC_STRAPI_URL}${post.cover?.url}`
-                    }
-                    className="w-full h-full object-cover"
-                  />
+                  {post.image ? (
+                    <img src={urlFor(post.image).width(600).url()} alt={post.image.alt || ""} title={post.slug} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gray-800 flex items-center justify-center text-gray-500 text-sm">No Image</div>
+                  )}
                 </div>
                 <div className="p-4">
-                  <h2 className="text-lg font-semibold text-white line-clamp-2 mb-2">
-                    {post.title}
-                  </h2>
-                  <p className="text-gray-400 text-sm line-clamp-3">
-                    {post.description}
-                  </p>
-                  <p className="text-teal-400 text-sm mt-4 font-medium hover:underline">
-                    Read More →
-                  </p>
+                  <h2 className="text-lg font-semibold text-white line-clamp-2 mb-2">{post.title}</h2>
+                  <p className="text-gray-400 text-sm line-clamp-3">{post.description}</p>
+                  <p className="text-teal-400 text-sm mt-4 font-medium hover:underline">Read More →</p>
                 </div>
               </Link>
             </motion.div>

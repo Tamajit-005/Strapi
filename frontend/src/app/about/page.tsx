@@ -47,8 +47,8 @@ export default function AboutPage() {
           <p>
             Built using{" "}
             <span className="text-teal-400 font-medium">Next.js</span>,{" "}
-            <span className="text-teal-400 font-medium">Strapi</span>,{" "}
-            <span className="text-teal-400 font-medium">GraphQL</span>, and{" "}
+            <span className="text-teal-400 font-medium">Sanity</span>,{" "}
+            <span className="text-teal-400 font-medium">GROQ</span>, and{" "}
             <span className="text-teal-400 font-medium">Cloudflare</span>, this
             project focuses heavily on performance, scalability, and efficient
             data handling.

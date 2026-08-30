@@ -4,38 +4,20 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**" },
-      {
-        protocol: "http",
-        hostname: "localhost",
-        port: "1337",
-        pathname: "/uploads/**",
-      },
+      { protocol: "https", hostname: "cdn.sanity.io" },
     ],
   },
 
   async headers() {
     return [
-      
-      // Do NOT cache APIs
       {
         source: "/api/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "no-store",
-          },
-        ],
+        headers: [{ key: "Cache-Control", value: "no-store" }],
       },
-
-      // Cache everything else
       {
         source: "/:path*",
         headers: [
-          {
-            key: "Cache-Control",
-            value:
-              "public, max-age=0, s-maxage=259200, stale-while-revalidate=86400",
-          },
+          { key: "Cache-Control", value: "public, max-age=0, s-maxage=259200, stale-while-revalidate=86400" },
         ],
       },
     ];
