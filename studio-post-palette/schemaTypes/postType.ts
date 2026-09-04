@@ -67,6 +67,7 @@ export const postType = defineType({
               {title: 'Strong', value: 'strong'},
               {title: 'Emphasis', value: 'em'},
               {title: 'Underline', value: 'underline'},
+              {title: 'Strike', value: 'strike-through'},
             ],
             annotations: [{name: 'link', type: 'object', title: 'Link', fields: [{name: 'href', type: 'url', title: 'URL'}]}],
           },
