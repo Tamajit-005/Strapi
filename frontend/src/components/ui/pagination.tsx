@@ -8,7 +8,6 @@ import {
   MoreHorizontalIcon,
 } from "lucide-react";
 
-// Utility function to concatenate class names
 function cn(...classes: (string | false | undefined)[]) {
   return classes.filter(Boolean).join(" ");
 }
@@ -65,8 +64,8 @@ export function PaginationLink({
       className={cn(
         "px-4 py-2 rounded-md text-sm font-medium transition-colors",
         isActive
-          ? "bg-teal-500 text-gray-900 border border-teal-400" // Active state
-          : "text-gray-400 hover:text-teal-400 hover:bg-gray-800", // Inactive state
+          ? "bg-white text-black border border-white"
+          : "text-gray-400 hover:text-white hover:bg-zinc-800 border border-white/10",
         className
       )}
       {...props}
@@ -87,7 +86,7 @@ export function PaginationPrevious({
     <PaginationLink
       href={href}
       className={cn(
-        "flex items-center gap-1 px-3 text-teal-400 hover:bg-teal-900/30",
+        "flex items-center gap-1 px-3 text-gray-400 hover:text-white hover:bg-zinc-800",
         className
       )}
       {...props}
@@ -109,7 +108,7 @@ export function PaginationNext({
     <PaginationLink
       href={href}
       className={cn(
-        "flex items-center gap-1 px-3 text-teal-400 hover:bg-teal-900/30",
+        "flex items-center gap-1 px-3 text-gray-400 hover:text-white hover:bg-zinc-800",
         className
       )}
       {...props}

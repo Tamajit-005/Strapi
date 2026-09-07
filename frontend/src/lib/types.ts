@@ -44,6 +44,7 @@ export interface BlogPost {
   image?: SanityImage | null;
   author?: Author | null;
   categories?: Category[] | null;
+  cardColor?: string | null;
 }
 
 // Backwards-compat alias used during migration — will be removed in Phase 4

@@ -7,8 +7,11 @@ import { urlFor } from "@/sanity/image";
 import moment from "moment";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
-import { Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { Plus, Check, Copy } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Oswald } from "next/font/google";
+
+const titleFont = Oswald({ weight: "600", subsets: ["latin"] });
 
 interface Props {
   post: BlogPost;
@@ -33,203 +36,188 @@ function CodeBlock({ value }: any) {
   return (
     <div className="relative group my-6">
       <pre
-        className="bg-slate-900 border border-slate-800 rounded-lg p-4 pr-12 overflow-x-auto cursor-pointer hover:border-slate-700 transition-colors"
+        className="bg-black/10 rounded-lg p-4 pr-12 overflow-x-auto cursor-pointer transition-colors"
         onClick={doCopy}
         title="Tap to copy"
       >
-        <code className="text-teal-300 text-sm block whitespace-pre font-mono">{text}</code>
+        <code className="text-black text-sm block whitespace-pre font-mono">{text}</code>
       </pre>
       <button
         onClick={doCopy}
         aria-label="Copy code"
         title={copied ? "Copied!" : "Tap to copy"}
-        className="absolute top-2 right-2 p-2 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-gray-300 transition-colors"
+        className="absolute top-2 right-2 p-2 rounded-md bg-black/10 hover:bg-black/20 text-black transition-colors"
       >
-        {copied ? <Check size={16} className="text-teal-400" /> : <Copy size={16} />}
+        {copied ? <Check size={16} /> : <Copy size={16} />}
       </button>
     </div>
   );
 }
 
-const portableComponents = {
-  block: {
-    h1: ({ children }: any) => (
-      <h1 className="text-4xl font-bold text-teal-400 mt-10 mb-4 border-b border-teal-800 pb-2">{children}</h1>
-    ),
-    h2: ({ children }: any) => <h2 className="text-3xl font-bold text-teal-400 mt-8 mb-3">{children}</h2>,
-    h3: ({ children }: any) => <h3 className="text-2xl font-semibold text-teal-400 mt-6 mb-2">{children}</h3>,
-    h4: ({ children }: any) => <h4 className="text-xl font-semibold text-teal-400 mt-6 mb-2">{children}</h4>,
-    h5: ({ children }: any) => <h5 className="text-lg font-semibold text-teal-400 mt-4 mb-2">{children}</h5>,
-    h6: ({ children }: any) => <h6 className="text-base font-semibold text-teal-400 mt-4 mb-2">{children}</h6>,
-    normal: ({ children }: any) => <p className="text-gray-300 leading-relaxed my-3">{children}</p>,
-    blockquote: ({ children }: any) => (
-      <blockquote className="border-l-4 border-teal-500 pl-4 ml-2 italic text-gray-400 my-4">
-        {children}
-      </blockquote>
-    ),
-  },
-  list: {
-    bullet: ({ children }: any) => (
-      <ul className="list-disc list-inside my-4 pl-2 text-gray-300 space-y-1">{children}</ul>
-    ),
-    number: ({ children }: any) => (
-      <ol className="list-decimal list-inside my-4 pl-2 text-gray-300 space-y-1">{children}</ol>
-    ),
-  },
-  listItem: {
-    bullet: ({ children }: any) => <li className="ml-2">{children}</li>,
-    number: ({ children }: any) => <li className="ml-2">{children}</li>,
-  },
-  marks: {
-    code: ({ children }: any) => (
-      <code className="bg-slate-800 text-teal-300 px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>
-    ),
-    strong: ({ children }: any) => <strong className="font-semibold text-white">{children}</strong>,
-    em: ({ children }: any) => <em className="italic">{children}</em>,
-    underline: ({ children }: any) => <u className="underline decoration-teal-500">{children}</u>,
-    link: ({ children, value }: any) => (
-      <a
-        href={value?.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-teal-300 underline decoration-teal-600 underline-offset-4 decoration-2 hover:text-teal-200 hover:decoration-teal-400 transition-colors"
-      >
-        {children}↗
-      </a>
-    ),
-  },
-  types: {
-    image: ({ value }: any) => {
-      if (!value?.asset) return null;
-      return (
-        <img
-          src={urlFor(value).width(800).url()}
-          alt={value.alt || ""}
-          title={value.alt || undefined}
-          className="rounded-lg w-full my-4 object-cover max-h-125"
-          loading="lazy"
-        />
-      );
-    },
-    code: CodeBlock,
-  },
-};
-
 export default function BlogPostClient({ post }: Props) {
   const router = useRouter();
-  const coverUrl = post.image ? urlFor(post.image).width(1200).url() : undefined;
+  const coverUrl = post.image ? urlFor(post.image).width(1000).url() : undefined;
+  const color = post.cardColor || "#EB4F2F";
+
+  /* Lock background scroll while the overlay is open */
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  const portableComponents = {
+    block: {
+      h1: ({ children }: any) => (
+        <h1 className={`${titleFont.className} text-3xl uppercase leading-[0.95] text-black mt-8 mb-3`}>{children}</h1>
+      ),
+      h2: ({ children }: any) => (
+        <h2 className={`${titleFont.className} text-2xl uppercase leading-none text-black mt-7 mb-3`}>{children}</h2>
+      ),
+      h3: ({ children }: any) => (
+        <h3 className={`${titleFont.className} text-xl uppercase text-black mt-6 mb-2`}>{children}</h3>
+      ),
+      h4: ({ children }: any) => <h4 className="text-lg font-bold text-black mt-5 mb-2">{children}</h4>,
+      h5: ({ children }: any) => <h5 className="text-base font-bold text-black mt-4 mb-2">{children}</h5>,
+      h6: ({ children }: any) => <h6 className="text-sm font-bold text-black mt-4 mb-2">{children}</h6>,
+      normal: ({ children }: any) => <p className="text-black/85 leading-relaxed my-3.5 text-[15px]">{children}</p>,
+      blockquote: ({ children }: any) => (
+        <blockquote className="border-l-4 border-black pl-4 ml-2 italic text-black/70 my-4">
+          {children}
+        </blockquote>
+      ),
+    },
+    list: {
+      bullet: ({ children }: any) => (
+        <ul className="list-disc list-inside my-4 pl-2 text-black/85 space-y-1">{children}</ul>
+      ),
+      number: ({ children }: any) => (
+        <ol className="list-decimal list-inside my-4 pl-2 text-black/85 space-y-1">{children}</ol>
+      ),
+    },
+    listItem: {
+      bullet: ({ children }: any) => <li className="ml-2">{children}</li>,
+      number: ({ children }: any) => <li className="ml-2">{children}</li>,
+    },
+    marks: {
+      code: ({ children }: any) => (
+        <code className="bg-black/10 text-black px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>
+      ),
+      strong: ({ children }: any) => <strong className="font-bold text-black">{children}</strong>,
+      em: ({ children }: any) => <em className="italic">{children}</em>,
+      underline: ({ children }: any) => <u className="underline">{children}</u>,
+      link: ({ children, value }: any) => (
+        <a
+          href={value?.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-black font-semibold underline underline-offset-4 decoration-2 hover:opacity-70 transition-opacity"
+        >
+          {children}↗
+        </a>
+      ),
+    },
+    types: {
+      image: ({ value }: any) => {
+        if (!value?.asset) return null;
+        return (
+          <img
+            src={urlFor(value).width(800).url()}
+            alt={value.alt || ""}
+            title={value.alt || undefined}
+            className="rounded-xl w-full my-4 object-cover"
+            loading="lazy"
+          />
+        );
+      },
+      code: CodeBlock,
+    },
+  };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="w-full min-h-screen bg-slate-950 text-gray-200"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="fixed inset-0 z-40 overflow-y-auto bg-black/60 backdrop-blur-xl"
     >
-      <div className="max-w-3xl mx-auto p-6 pb-20">
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
+      <div className="w-full px-4 pt-28 md:pt-32 pb-16">
+        {/* ── Article card ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-4xl leading-15 text-center font-bold text-teal-400 capitalize"
+          className="mx-auto w-full max-w-167.5 rounded-2xl"
+          style={{ backgroundColor: color }}
         >
-          {post.title}
-        </motion.h1>
+          <div className="p-3 sm:p-8">
+            {/* Title + close */}
+            <header className="flex flex-col gap-y-3.5 mb-10">
+              <div className="flex justify-between gap-x-3.5">
+                <h1 className={`${titleFont.className} text-4xl xl:text-5xl uppercase leading-[0.95] text-black text-ellipsis overflow-hidden`}>
+                  {post.title}
+                </h1>
+                <button
+                  onClick={() => router.back()}
+                  aria-label="Close article"
+                  title="Close"
+                  className="rotate-45 shrink-0 flex items-center justify-center w-9 h-9 text-black hover:opacity-60 transition-opacity"
+                >
+                  <span className="flex items-center justify-center w-9 h-9 border border-current border-solid rounded-full">
+                    <Plus size={20} />
+                  </span>
+                </button>
+              </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="w-full flex items-center justify-center font-light text-gray-400 mt-1"
-        >
-          {post.publishedAt ? `Published ${moment(post.publishedAt).fromNow()}` : ""}
-        </motion.div>
+              {/* Category pills */}
+              {post.categories && post.categories.length > 0 && (
+                <div className="flex gap-x-1 gap-y-2 flex-wrap">
+                  {post.categories.map((cat) => (
+                    <span
+                      key={cat._id}
+                      className="inline-block text-[11px] font-normal px-4 py-2 rounded-full uppercase tracking-[0.14em] text-black border border-black"
+                    >
+                      {cat.name}
+                    </span>
+                  ))}
+                </div>
+              )}
 
-        {post.categories && post.categories.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="flex flex-wrap space-x-2 my-4 justify-center"
-          >
-            {post.categories.map((cat) => (
-              <span
-                key={cat._id}
-                className="border border-teal-800 text-teal-300 px-2 py-1 text-sm rounded bg-teal-950/40 font-medium"
-              >
-                {cat.name}
-              </span>
-            ))}
-          </motion.div>
-        )}
+              {/* Meta */}
+              <div className="uppercase text-xs mt-1 mb-1 flex flex-col gap-1 text-black/70 font-semibold tracking-wider">
+                {post.publishedAt && (
+                  <span suppressHydrationWarning>{moment(post.publishedAt).format("MMM D, YYYY")}</span>
+                )}
+                {post.author?.name && <span>By {post.author.name}</span>}
+              </div>
+            </header>
 
-        {coverUrl && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="relative h-72 w-full my-6"
-          >
-            <img
-              src={coverUrl}
-              alt={post.image?.alt || ""}
-              title={post.image?.alt || undefined}
-              className="rounded-lg w-full h-full object-cover"
-            />
-          </motion.div>
-        )}
+            {/* Hero image */}
+            {coverUrl && (
+              <div className="relative w-full aspect-square overflow-hidden rounded-xl">
+                <img
+                  src={coverUrl}
+                  alt={post.image?.alt || ""}
+                  title={post.image?.alt || undefined}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+            )}
 
-        {post.description && (
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-            className="text-gray-400 leading-8 tracking-wide italic mt-2 mb-6 text-center"
-          >
-            {post.description}
-          </motion.p>
-        )}
+            {/* Description */}
+            {post.description && (
+              <p className="text-black/85 leading-relaxed mt-6 mb-2 text-base font-semibold">
+                {post.description}
+              </p>
+            )}
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="prose prose-invert max-w-none leading-relaxed"
-        >
-          {post.body ? <PortableText value={post.body} components={portableComponents as any} /> : null}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="flex flex-col items-center justify-center text-gray-400 font-light mb-6 mt-10 text-sm"
-        >
-          {post.author?.name && (
-            <p>
-              Written by <span className="font-medium text-teal-300">{post.author.name}</span> —{" "}
-              {moment(post.publishedAt).fromNow()}
-            </p>
-          )}
-          {post.author?.email && (
-            <p className="mt-1">
-              Contact:{" "}
-              <a href={`mailto:${post.author.email}`} className="text-teal-300 hover:underline">
-                {post.author.email}
-              </a>
-            </p>
-          )}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.55 }}
-          className="w-full flex justify-center mt-8"
-        >
-          <button onClick={() => router.back()} className="text-teal-500 font-medium hover:underline">
-            ← Back to Blogs
-          </button>
+            {/* Body */}
+            <div className="w-full leading-relaxed">
+              {post.body ? <PortableText value={post.body} components={portableComponents as any} /> : null}
+            </div>
+          </div>
         </motion.div>
       </div>
     </motion.div>

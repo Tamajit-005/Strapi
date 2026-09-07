@@ -7,6 +7,7 @@ import {
   SEARCH_POSTS_QUERY,
 } from "@/lib/queries";
 import type { BlogPost, Category } from "@/lib/types";
+import { getCardColors } from "./BlogModel";
 
 let postsCache: BlogPost[] | null = null;
 let categoriesCache: Category[] | null = null;
@@ -58,6 +59,17 @@ export async function getAllPosts(): Promise<BlogPost[]> {
       if (!posts || posts.length === 0) {
         console.warn("⚠️ getAllPosts: empty response from Sanity, keeping stale cache");
         return postsCache ?? [];
+      }
+
+      // Enrich with cardColor from MongoDB
+      try {
+        const colorMap = await getCardColors();
+        for (const post of posts) {
+          const color = colorMap.get(post.slug);
+          if (color) post.cardColor = color;
+        }
+      } catch (e) {
+        console.warn("⚠️ getAllPosts: failed to fetch cardColor from MongoDB:", e);
       }
 
       postsCache = posts;

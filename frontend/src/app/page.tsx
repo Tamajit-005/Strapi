@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function Page() {
   const initialPosts: BlogPost[] = await getAllPosts();
   return (
-    <Suspense fallback={<div className="w-full flex items-center justify-center min-h-screen bg-slate-950"><Loader /></div>}>
+    <Suspense fallback={<div className="w-full flex items-center justify-center min-h-screen bg-black"><Loader /></div>}>
       <BlogListClient initialPosts={initialPosts} />
     </Suspense>
   );

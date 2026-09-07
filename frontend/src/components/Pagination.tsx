@@ -43,7 +43,7 @@ export default function BlogPagination({
       <button
         onClick={() => onPageChange?.(Math.max(1, currentPage - 1))}
         disabled={currentPage <= 1}
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-teal-500/40 hover:text-teal-400 disabled:opacity-30 disabled:pointer-events-none"
+        className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-white/25 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
       >
         <ChevronLeft size={18} />
       </button>
@@ -60,8 +60,8 @@ export default function BlogPagination({
             onClick={() => onPageChange?.(page)}
             className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-all duration-200 ${
               page === currentPage
-                ? "bg-teal-400 text-gray-900 shadow-[0_0_12px_rgba(45,212,191,0.4)]"
-                : "border border-white/10 text-gray-400 hover:border-teal-500/40 hover:text-teal-400"
+                ? "bg-white text-black"
+                : "border border-white/10 text-gray-400 hover:border-white/25 hover:text-white"
             }`}
           >
             {page}
@@ -73,7 +73,7 @@ export default function BlogPagination({
       <button
         onClick={() => onPageChange?.(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage >= totalPages}
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-teal-500/40 hover:text-teal-400 disabled:opacity-30 disabled:pointer-events-none"
+        className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-white/25 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
       >
         <ChevronRight size={18} />
       </button>

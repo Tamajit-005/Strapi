@@ -1,23 +1,45 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { type BlogPost } from "@/lib/types";
 import { urlFor } from "@/sanity/image";
 import BlogPagination from "@/components/Pagination";
 import { motion } from "framer-motion";
-import moment from "moment";
-import { ChevronDown, ArrowRight } from "lucide-react";
+import { Oswald } from "next/font/google";
+
+const titleFont = Oswald({ weight: ["600", "700"], subsets: ["latin"] });
 
 interface Props {
   initialPosts: BlogPost[];
+  disableAutoScroll?: boolean;
 }
 
-export default function BlogListClient({ initialPosts }: Props) {
+/* ── Fallback palette (used when a post has no cardColor) ── */
+const FALLBACK_COLORS = ["#EB4F2F", "#699EF6", "#C588BB", "#F6B12D", "#858B40", "#B26E5E"];
+function fallbackColor(i: number) {
+  return FALLBACK_COLORS[i % FALLBACK_COLORS.length];
+}
+
+function CategoryPills({ post }: { post: BlogPost }) {
+  if (!post.categories || post.categories.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-x-1 gap-y-2">
+      {post.categories.map((cat) => (
+        <span
+          key={cat._id}
+          className="inline-flex items-center h-9 px-3 rounded-full hover:rounded-lg transition-all duration-150 uppercase text-base leading-4.75 font-bold tracking-[-0.01em] text-black border border-black bg-transparent"
+        >
+          {cat.name}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export default function BlogListClient({ initialPosts, disableAutoScroll = false }: Props) {
   const [allPosts] = useState<BlogPost[]>(initialPosts);
-  const [sortBy, setSortBy] = useState<"latest" | "oldest">("latest");
-  const [sortOpen, setSortOpen] = useState(false);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -27,13 +49,12 @@ export default function BlogListClient({ initialPosts }: Props) {
   const currentPage = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
   const pageSize = parseInt(process.env.NEXT_PUBLIC_PAGE_LIMIT || "10");
 
+  /* Latest first */
   const sortedPosts = useMemo(() => {
-    return [...allPosts].sort((a, b) => {
-      const dateA = new Date(a.publishedAt).getTime();
-      const dateB = new Date(b.publishedAt).getTime();
-      return sortBy === "latest" ? dateB - dateA : dateA - dateB;
-    });
-  }, [allPosts, sortBy]);
+    return [...allPosts].sort(
+      (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+    );
+  }, [allPosts]);
 
   const totalPages = Math.max(1, Math.ceil(sortedPosts.length / pageSize));
 
@@ -42,8 +63,60 @@ export default function BlogListClient({ initialPosts }: Props) {
     return sortedPosts.slice(startIndex, startIndex + pageSize);
   }, [sortedPosts, currentPage, pageSize]);
 
-  const featuredPost = currentSlice[0];
-  const regularPosts = currentSlice.slice(1);
+  /* Pair posts into free rows, alternating the wide side */
+  const rows = useMemo(() => {
+    const out: { post: BlogPost; index: number; wide: boolean }[][] = [];
+    currentSlice.forEach((post, i) => {
+      const row = Math.floor(i / 2);
+      const pos = i % 2;
+      const wide = (row % 2 === 0 && pos === 0) || (row % 2 === 1 && pos === 1);
+      if (pos === 0) out.push([]);
+      out[row].push({ post, index: i, wide });
+    });
+    return out;
+  }, [currentSlice]);
+
+  /* Extremely slow ambient scroll: drifts down, then back up, looping.
+     Pauses for a while whenever the user interacts. */
+  useEffect(() => {
+    if (disableAutoScroll) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const SPEED = 32; // px per second — very slow but perceptible
+    const RESUME_AFTER = 5000; // ms of calm before resuming
+    let raf = 0;
+    let dir: 1 | -1 = 1;
+    let last = performance.now();
+    let pausedUntil = 0;
+    const pause = () => {
+      pausedUntil = performance.now() + RESUME_AFTER;
+    };
+    const events = ["wheel", "touchstart", "touchmove", "keydown", "mousedown"];
+    events.forEach((e) => window.addEventListener(e, pause, { passive: true }));
+    const tick = (now: number) => {
+      const dt = Math.min((now - last) / 1000, 0.1);
+      last = now;
+      if (now >= pausedUntil) {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        if (max > 0) {
+          let y = window.scrollY + dir * SPEED * dt;
+          if (y >= max) {
+            y = max;
+            dir = -1;
+          } else if (y <= 0) {
+            y = 0;
+            dir = 1;
+          }
+          window.scrollTo(0, y);
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      events.forEach((e) => window.removeEventListener(e, pause));
+    };
+  }, [disableAutoScroll]);
 
   const handlePageChange = (page: number) => {
     const newParams = new URLSearchParams(searchParams.toString());
@@ -54,8 +127,8 @@ export default function BlogListClient({ initialPosts }: Props) {
 
   if (!sortedPosts.length)
     return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-[#02050a]">
-        <p className="text-center text-gray-400">No posts found.</p>
+      <div className="w-full min-h-screen flex items-center justify-center bg-black">
+        <p className="text-center text-gray-500 text-lg">No posts found.</p>
       </div>
     );
 
@@ -64,200 +137,99 @@ export default function BlogListClient({ initialPosts }: Props) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="w-full bg-[#02050a] min-h-screen"
+      className="w-full bg-black min-h-screen"
     >
       <div className="w-full px-4 md:px-6 lg:px-8 py-8 md:py-12">
-        {/* ── Featured Post (hero card) ── */}
-        {featuredPost && (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <Link href={`/blogs/${featuredPost.slug}`}>
-              <div className="relative w-full rounded-2xl overflow-hidden cursor-pointer group" style={{ minHeight: "420px" }}>
-                {/* Background image */}
-                {featuredPost.image && (
-                  <img
-                    src={urlFor(featuredPost.image).width(1200).url()}
-                    alt={featuredPost.image.alt || ""}
-                    title={featuredPost.image.alt || undefined}
-                    className="absolute inset-0 w-full h-full object-cover brightness-[0.58] group-hover:scale-105 transition-transform duration-700"
-                  />
-                )}
-                {/* Gradient overlays — lighter for brighter hero */}
-                <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/25 to-transparent" />
-                <div className="absolute inset-0 bg-linear-to-r from-black/30 to-transparent" />
-
-                {/* Content */}
-                <div className="relative z-10 flex flex-col justify-end h-full p-8 md:p-12" style={{ minHeight: "420px" }}>
-                  {/* LATEST STORY label */}
-                  <div className="flex items-center gap-2 mb-6">
-                    <span className="h-2 w-2 rounded-full bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.8)]" />
-                    <span className="text-teal-400 text-xs font-bold uppercase tracking-[0.15em]">Latest Story</span>
-                  </div>
-
-                  {/* Category badge */}
-                  {featuredPost.categories && featuredPost.categories.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {featuredPost.categories.map((cat) => (
-                        <span
-                          key={cat._id}
-                          className="inline-block bg-teal-500/90 text-gray-900 text-[11px] font-bold px-3 py-1 rounded-md uppercase tracking-wider"
-                        >
-                          {cat.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Title */}
-                  <h1 className="text-3xl md:text-[42px] font-bold text-white mb-3 leading-tight max-w-3xl font-serif">
-                    {featuredPost.title}
-                  </h1>
-
-                  {/* Teal underline */}
-                  <div className="w-14 h-0.75 rounded-full bg-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.6)] mb-5" />
-
-                  {/* Description */}
-                  <p className="text-gray-300 text-[15px] md:text-base leading-relaxed max-w-2xl mb-6 line-clamp-3">
-                    {featuredPost.description}
-                  </p>
-
-                  {/* Author + date */}
-                  <div className="flex items-center gap-3 text-sm text-gray-400 mb-6">
-                    {featuredPost.author?.name && (
-                      <span className="text-gray-200 font-medium">{featuredPost.author.name}</span>
-                    )}
-                    {featuredPost.author?.name && featuredPost.publishedAt && (
-                      <span className="text-gray-600">•</span>
-                    )}
-                    {featuredPost.publishedAt && (
-                      <span suppressHydrationWarning>{moment(featuredPost.publishedAt).format("MMM D, YYYY")}</span>
-                    )}
-                  </div>
-
-                  {/* Read Full Story button */}
-                  <div className="flex items-center gap-4">
-                    <span className="inline-flex items-center gap-2 border border-teal-400 text-teal-400 text-sm font-semibold px-6 py-2.5 rounded-lg hover:bg-teal-400 hover:text-gray-900 transition-all duration-300 group/btn">
-                      Read Full Story
-                      <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          </motion.div>
-        )}
-
-        {/* ── All Stories section ── */}
-        <div className="mt-14">
-          {/* Header row */}
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-white">All Stories</h2>
-
-            {/* Sort dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setSortOpen(!sortOpen)}
-                className="flex items-center gap-1.5 text-sm text-teal-400 hover:text-teal-300 transition-colors font-medium"
-              >
-                Sort by: <span className="text-teal-400">{sortBy === "latest" ? "Latest" : "Oldest"}</span>
-                <ChevronDown size={14} className={`transition-transform ${sortOpen ? "rotate-180" : ""}`} />
-              </button>
-              {sortOpen && (
-                <div className="absolute right-0 mt-2 w-36 rounded-xl border border-white/10 bg-[#080c18] backdrop-blur-xl shadow-xl z-50 overflow-hidden">
-                  <button
-                    onClick={() => { setSortBy("latest"); setSortOpen(false); }}
-                    className={`block w-full text-left px-4 py-2.5 text-sm transition ${sortBy === "latest" ? "text-teal-400 bg-teal-500/10" : "text-gray-300 hover:bg-white/5 hover:text-white"}`}
+        <div className="max-w-270 mx-auto flex flex-col gap-10 md:gap-16">
+          {rows.map((pair, r) => (
+            <div
+              key={r}
+              className={`flex flex-col lg:flex-row gap-10 lg:gap-x-14 items-center lg:items-start ${
+                r % 2 === 1 ? "xl:-mr-16" : "xl:-ml-16"
+              }`}
+            >
+              {pair.map(({ post, index: i, wide }) => {
+                const color = post.cardColor || fallbackColor(i);
+                return (
+                  <motion.div
+                    key={post._id}
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.06 * i, duration: 0.45 }}
+                    className={`${wide ? "lg:flex-1 lg:max-w-167.5" : "lg:w-81.25 lg:shrink-0"} w-full max-w-85 md:max-w-110 lg:max-w-none ${
+                      wide ? "" : "lg:mt-20"
+                    }`}
                   >
-                    Latest
-                  </button>
-                  <button
-                    onClick={() => { setSortBy("oldest"); setSortOpen(false); }}
-                    className={`block w-full text-left px-4 py-2.5 text-sm transition ${sortBy === "oldest" ? "text-teal-400 bg-teal-500/10" : "text-gray-300 hover:bg-white/5 hover:text-white"}`}
-                  >
-                    Oldest
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Post cards — grid like reference photo */}
-          {regularPosts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {regularPosts.map((post, i) => (
-                <motion.div
-                  key={post._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.06 * i, duration: 0.4 }}
-                  className="h-full"
-                >
-                  <Link
-                    href={`/blogs/${post.slug}`}
-                    className="group flex flex-col h-full rounded-2xl overflow-hidden border border-white/5 bg-[#080c18] hover:border-teal-500/25 transition-all duration-300 hover:shadow-[0_0_40px_rgba(45,212,191,0.08)] hover:-translate-y-1"
-                  >
-                    {/* Image — top */}
-                    {post.image && (
-                      <div className="relative w-full h-52 shrink-0 overflow-hidden">
-                        <img
-                          src={urlFor(post.image).width(600).url()}
-                          alt={post.image.alt || ""}
-                          title={post.image.alt || undefined}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-linear-to-t from-[#080c18]/70 to-transparent" />
-                      </div>
-                    )}
-
-                    {/* Content */}
-                    <div className="flex flex-col flex-1 p-6">
-                      {/* Category badge */}
-                      {post.categories && post.categories.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {post.categories.map((cat) => (
-                            <span
-                              key={cat._id}
-                              className="inline-block text-teal-400 text-[11px] font-bold uppercase tracking-wider bg-teal-500/10 border border-teal-500/20 px-2.5 py-0.5 rounded"
-                            >
-                              {cat.name}
-                            </span>
-                          ))}
+                    {wide ? (
+                      /* ── Wide card: image left, title right ── */
+                      <Link
+                        href={`/blogs/${post.slug}`}
+                        className="group flex flex-col lg:flex-row h-118.75 rounded-2xl border border-black p-3.5 transition-transform duration-300 hover:-translate-y-1"
+                        style={{ backgroundColor: color }}
+                      >
+                        <div className="relative w-full lg:w-1/2 shrink-0 overflow-hidden rounded-xl h-52.5 lg:h-auto">
+                          {post.image ? (
+                            <img
+                              src={urlFor(post.image).width(700).url()}
+                              alt={post.image.alt || ""}
+                              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/15">
+                              <span className={`${titleFont.className} text-7xl uppercase text-black/25`}>
+                                {post.title.charAt(0)}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      )}
-
-                      {/* Title */}
-                      <h3 className="text-lg font-bold text-white mb-2 leading-snug group-hover:text-teal-400 transition-colors line-clamp-2">
-                        {post.title}
-                      </h3>
-
-                      {/* Description */}
-                      <p className="text-gray-400 text-sm leading-relaxed line-clamp-2 mb-4 flex-1">
-                        {post.description}
-                      </p>
-
-                      {/* Author + date */}
-                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-auto pt-4 border-t border-white/5">
-                        {post.author?.name && (
-                          <span className="text-gray-300 font-medium">{post.author.name}</span>
+                        <div className="flex flex-col flex-1 min-h-0 px-0 pt-3.5 pb-0 lg:pt-0 lg:pl-3.5">
+                          <h3 className={`${titleFont.className} text-8.75 leading-8.25 font-semibold uppercase tracking-[-0.02em] text-black line-clamp-4`}>
+                            {post.title}
+                          </h3>
+                          <div className="flex items-center justify-between mt-auto pt-3">
+                            <CategoryPills post={post} />
+                            {/* <span className="flex h-9 w-9 shrink-0 ml-3 items-center justify-center rounded-full border border-black text-xl font-light leading-none">+</span> */}
+                          </div>
+                        </div>
+                      </Link>
+                    ) : (
+                      /* ── Narrow card: image top, title below ── */
+                      <Link
+                        href={`/blogs/${post.slug}`}
+                        className="group flex flex-col h-118.75 rounded-2xl border border-black p-3.5 transition-transform duration-300 hover:-translate-y-1"
+                        style={{ backgroundColor: color }}
+                      >
+                        {post.image ? (
+                          <div className="relative w-full shrink-0 overflow-hidden rounded-xl h-52.5">
+                            <img
+                              src={urlFor(post.image).width(600).url()}
+                              alt={post.image.alt || ""}
+                              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                          </div>
+                        ) : (
+                          <div className="relative w-full shrink-0 flex items-center justify-center rounded-xl bg-black/15 h-52.5">
+                            <span className={`${titleFont.className} text-7xl uppercase text-black/25`}>
+                              {post.title.charAt(0)}
+                            </span>
+                          </div>
                         )}
-                        {post.author?.name && post.publishedAt && (
-                          <span>•</span>
-                        )}
-                        {post.publishedAt && (
-                          <span suppressHydrationWarning>{moment(post.publishedAt).format("MMM D, YYYY")}</span>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
+                        <div className="flex flex-col flex-1 px-0 pt-3.5 pb-0">
+                          <h3 className={`${titleFont.className} text-6.25 leading-6 font-bold uppercase tracking-[-0.04em] text-black line-clamp-4`}>
+                            {post.title}
+                          </h3>
+                          <div className="flex items-center justify-between mt-auto pt-3">
+                            <CategoryPills post={post} />
+                            {/* <span className="flex h-9 w-9 shrink-0 ml-3 items-center justify-center rounded-full border border-black text-xl font-light leading-none">+</span> */}
+                          </div>
+                        </div>
+                      </Link>
+                    )}
+                  </motion.div>
+                );
+              })}
             </div>
-          ) : (
-            <p className="text-center text-gray-400 py-10">No more posts on this page.</p>
-          )}
+          ))}
         </div>
 
         {/* ── Pagination ── */}

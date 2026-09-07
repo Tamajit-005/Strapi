@@ -44,7 +44,7 @@ export default async function CategoryPage({
   return (
     <Suspense
       fallback={
-        <div className="w-full flex flex-col items-center justify-center min-h-screen bg-slate-950">
+        <div className="w-full flex flex-col items-center justify-center min-h-screen bg-black">
           <Loader />
           <p className="text-gray-400 mt-4">Loading category...</p>
         </div>

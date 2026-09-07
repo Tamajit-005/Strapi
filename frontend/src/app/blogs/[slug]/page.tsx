@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { getAllPosts, getPostBySlug, getPostBySlugFetch } from "@/lib/buildCache";
 import type { BlogPost } from "@/lib/types";
 import BlogPostClient from "./BlogPostClient";
+import BlogListClient from "@/app/BlogListClient";
+import Loader from "@/components/Loader";
 
 // TEMP: no cache for dev — restore 86400 before production
 export const revalidate = 0;
@@ -29,5 +32,16 @@ export default async function BlogPostPage({
     post = fetched;
   }
 
-  return <BlogPostClient post={post} />;
+  const allPosts: BlogPost[] = await getAllPosts();
+
+  return (
+    <>
+      {/* Homepage listing behind the overlay (auto-scroll frozen) */}
+      <Suspense fallback={<div className="w-full flex items-center justify-center min-h-screen bg-black"><Loader /></div>}>
+        <BlogListClient initialPosts={allPosts} disableAutoScroll />
+      </Suspense>
+      {/* Translucent article overlay */}
+      <BlogPostClient post={post} />
+    </>
+  );
 }

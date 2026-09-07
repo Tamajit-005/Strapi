@@ -9,11 +9,11 @@ export default function AboutPage() {
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="w-full min-h-screen bg-slate-950 text-gray-300 py-12 px-4"
+      className="w-full min-h-screen bg-black text-gray-300 py-12 px-4"
     >
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-center gap-3 mb-8">
-          <h1 className="text-4xl font-bold text-teal-500">About Us</h1>
+          <h1 className="text-4xl font-black uppercase tracking-tight text-white">About Us</h1>
           <Image
             src="/images/Logo.png"
             alt="Logo"
@@ -26,13 +26,13 @@ export default function AboutPage() {
 
         <div className="space-y-6 text-lg leading-relaxed text-gray-400">
           <p>
-            Welcome to <strong className="text-teal-400">POST PALETTE</strong> —
+            Welcome to <strong className="text-white font-bold">POST PALETTE</strong> —
             a platform built by students, for students.
           </p>
 
           <p>
-            We are <span className="text-teal-400 font-medium">Tamajit</span>{" "}
-            and <span className="text-teal-400 font-medium">Mayukh</span>, two
+            We are <span className="text-white font-semibold">Tamajit</span>{" "}
+            and <span className="text-white font-semibold">Mayukh</span>, two
             B.Tech students passionate about web development, system design, and
             building real-world applications beyond textbooks.
           </p>
@@ -46,10 +46,10 @@ export default function AboutPage() {
 
           <p>
             Built using{" "}
-            <span className="text-teal-400 font-medium">Next.js</span>,{" "}
-            <span className="text-teal-400 font-medium">Sanity</span>,{" "}
-            <span className="text-teal-400 font-medium">GROQ</span>, and{" "}
-            <span className="text-teal-400 font-medium">Cloudflare</span>, this
+            <span className="text-white font-semibold">Next.js</span>,{" "}
+            <span className="text-white font-semibold">Sanity</span>,{" "}
+            <span className="text-white font-semibold">GROQ</span>, and{" "}
+            <span className="text-white font-semibold">Cloudflare</span>, this
             project focuses heavily on performance, scalability, and efficient
             data handling.
           </p>
@@ -74,7 +74,7 @@ export default function AboutPage() {
           </p>
 
           <div className="mt-6">
-            <h2 className="text-xl text-teal-400 font-semibold mb-2">
+            <h2 className="text-xl text-white font-bold uppercase tracking-wide mb-3">
               What we write about
             </h2>
             <ul className="space-y-2">
@@ -89,7 +89,7 @@ export default function AboutPage() {
         <div className="text-center mt-10">
           <a
             href="/"
-            className="text-teal-500 font-medium hover:text-teal-300 hover:underline transition"
+            className="text-white font-bold uppercase text-sm tracking-wider hover:underline transition"
           >
             Explore our latest blogs →
           </a>

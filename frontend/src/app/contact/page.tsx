@@ -48,10 +48,10 @@ export default function ContactPage() {
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="w-full min-h-screen bg-slate-950 text-gray-300 py-12 px-4"
+      className="w-full min-h-screen bg-black text-gray-300 py-12 px-4"
     >
-      <div className="max-w-3xl mx-auto bg-gray-900 rounded-lg shadow-lg p-6 md:p-10">
-        <h1 className="text-4xl font-bold text-teal-500 mb-6 text-center">
+      <div className="max-w-3xl mx-auto bg-zinc-900 rounded-2xl border border-white/5 shadow-lg p-6 md:p-10">
+        <h1 className="text-4xl font-black uppercase tracking-tight text-white mb-6 text-center">
           Contact Us
         </h1>
 
@@ -60,7 +60,7 @@ export default function ContactPage() {
           email us at{" "}
           <a
             href="mailto:tamajitsaha05@gmail.com"
-            className="text-teal-400 underline hover:text-teal-300 transition"
+            className="text-white font-semibold underline hover:text-gray-300 transition"
           >
             tamajitsaha05@gmail.com
           </a>
@@ -76,8 +76,7 @@ export default function ContactPage() {
             required
             minLength={2}
             maxLength={100}
-            className="p-3 rounded-md bg-slate-800 text-gray-100 placeholder-gray-500 
-              focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+            className="p-3 rounded-lg bg-zinc-800 text-gray-100 placeholder-gray-500 border border-white/5 focus:outline-none focus:border-white/20 transition"
           />
 
           <input
@@ -86,8 +85,7 @@ export default function ContactPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="p-3 rounded-md bg-slate-800 text-gray-100 placeholder-gray-500 
-              focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+            className="p-3 rounded-lg bg-zinc-800 text-gray-100 placeholder-gray-500 border border-white/5 focus:outline-none focus:border-white/20 transition"
           />
 
           <textarea
@@ -98,23 +96,21 @@ export default function ContactPage() {
             minLength={10}
             maxLength={5000}
             rows={5}
-            className="p-3 rounded-md bg-slate-800 text-gray-100 placeholder-gray-500 
-              focus:outline-none focus:ring-2 focus:ring-teal-500 transition resize-vertical"
+            className="p-3 rounded-lg bg-zinc-800 text-gray-100 placeholder-gray-500 border border-white/5 focus:outline-none focus:border-white/20 transition resize-vertical"
           />
 
           <button
             type="submit"
             disabled={loading}
-            className="bg-teal-600 hover:bg-teal-500 text-white font-medium px-6 py-3 rounded-md 
-              transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-white hover:bg-gray-200 text-black font-bold uppercase text-sm tracking-wider px-6 py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Sending..." : "Send Message"}
           </button>
         </form>
 
         <div className="mt-10 text-center">
-          <h2 className="text-xl font-semibold mb-3 text-teal-400">
-            Follow us:
+          <h2 className="text-[13px] font-bold uppercase tracking-widest mb-4 text-gray-500">
+            Follow us
           </h2>
 
           <div className="flex justify-center gap-6">
@@ -122,7 +118,7 @@ export default function ContactPage() {
               href="https://x.com/tamajitsaha05"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-400 hover:text-teal-400 transition"
+              className="text-gray-500 hover:text-white transition"
             >
               <FaTwitter size={22} />
             </a>
@@ -131,7 +127,7 @@ export default function ContactPage() {
               href="https://github.com/Tamajit-005"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-400 hover:text-teal-400 transition"
+              className="text-gray-500 hover:text-white transition"
             >
               <FaGithub size={22} />
             </a>
@@ -140,7 +136,7 @@ export default function ContactPage() {
               href="https://www.instagram.com/tamajit005/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-400 hover:text-teal-400 transition"
+              className="text-gray-500 hover:text-white transition"
             >
               <FaInstagram size={22} />
             </a>
