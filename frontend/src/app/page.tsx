@@ -4,8 +4,9 @@ import { getAllPosts } from "@/lib/buildCache";
 import type { BlogPost } from "@/lib/types";
 import BlogListClient from "./BlogListClient";
 
+// Dynamic on purpose: BlogListClient reads ?page= via useSearchParams, so a static
+// route would drop the cards from the HTML. The data itself comes from the 24h cache.
 export const revalidate = 0;
-export const dynamic = "force-dynamic";
 
 export default async function Page() {
   const initialPosts: BlogPost[] = await getAllPosts();

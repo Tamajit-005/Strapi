@@ -6,9 +6,6 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
-const geistSans = { variable: "--font-geist-sans" };
-const geistMono = { variable: "--font-geist-mono" };
-
 export const metadata: Metadata = {
   title: "POST PALETTE",
   description:
@@ -21,12 +18,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-color-mode="dark">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
-      >
+    <html lang="en">
+      <body className="antialiased flex flex-col min-h-screen">
         <Navbar />
-        <main className="flex-1 pt-[68px] md:pt-20">{children}</main>
+        <main className="flex-1 pt-25.75">{children}</main>
         <Footer />
         <Toaster />
         {/* Analytics and SpeedInsights at the end of body */}

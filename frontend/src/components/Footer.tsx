@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { Anton } from "next/font/google";
+import { FaInstagram, FaGithub, FaLinkedin, FaXTwitter } from "react-icons/fa6";
 
 const wordmark = Anton({ weight: "400", subsets: ["latin"] });
+
+const socialLinks = [
+  { label: "Instagram", href: "https://www.instagram.com/tamajit005", Icon: FaInstagram },
+  { label: "GitHub", href: "https://github.com/Tamajit-005", Icon: FaGithub },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/tamajit05", Icon: FaLinkedin },
+  { label: "Twitter", href: "https://x.com/tamajitsaha05", Icon: FaXTwitter },
+];
 
 const categories = [
   { label: "Lifestyle", slug: "lifestyle" },
@@ -22,11 +30,27 @@ const quickLinks = [
 export default function Footer() {
   return (
     <footer className="w-full px-5 md:px-10 bg-black text-white">
-      <div className="flex flex-col md:flex-row md:justify-between gap-y-10 mt-[60px] md:mt-20 mb-[100px]">
-        {/* Left — logo only */}
-        <Link href="/" className={`${wordmark.className} inline-block origin-left text-5xl md:text-7xl uppercase leading-none tracking-wide transition-transform duration-300 hover:scale-[1.03]`}>
-          Post Palette
-        </Link>
+      <div className="flex flex-col md:flex-row md:justify-between gap-y-10 mt-15 md:mt-20 mb-25">
+        {/* Left — logo + socials */}
+        <div>
+          <Link href="/" className={`${wordmark.className} inline-block origin-left text-5xl md:text-7xl uppercase leading-none tracking-wide transition-transform duration-300 hover:scale-103`}>
+            Post Palette
+          </Link>
+          <div className="mt-6 flex items-center gap-4">
+            {socialLinks.map(({ label, href, Icon }) => (
+              <a
+                key={label}
+                href={href}
+                aria-label={label}
+                target="_blank"
+                rel="noreferrer"
+                className="text-white/60 transition-colors duration-200 hover:text-white"
+              >
+                <Icon size={22} />
+              </a>
+            ))}
+          </div>
+        </div>
 
         {/* Right — two parts */}
         <div className="flex gap-16 md:gap-24">
@@ -40,7 +64,7 @@ export default function Footer() {
                 <li key={c.slug}>
                   <Link
                     href={`/category/${encodeURIComponent(c.slug)}`}
-                    className="relative w-fit text-lg md:text-xl font-semibold uppercase tracking-wider transition-transform duration-300 hover:translate-x-1.5 after:absolute after:-bottom-0.5 after:left-0 after:h-[2px] after:w-0 after:bg-white after:transition-all after:duration-300 hover:after:w-full"
+                    className="relative w-fit text-lg md:text-xl font-semibold uppercase tracking-wider transition-transform duration-300 hover:translate-x-1.5 after:absolute after:-bottom-0.5 after:left-0 after:h-0.5 after:w-0 after:bg-white after:transition-all after:duration-300 hover:after:w-full"
                   >
                     {c.label}
                   </Link>
@@ -57,7 +81,7 @@ export default function Footer() {
             <ul className="flex flex-col gap-2.5">
               {quickLinks.map((l) => (
                 <li key={l.label}>
-                  <Link href={l.href} className="relative w-fit text-lg md:text-xl font-semibold uppercase tracking-wider transition-transform duration-300 hover:translate-x-1.5 after:absolute after:-bottom-0.5 after:left-0 after:h-[2px] after:w-0 after:bg-white after:transition-all after:duration-300 hover:after:w-full">
+                  <Link href={l.href} className="relative w-fit text-lg md:text-xl font-semibold uppercase tracking-wider transition-transform duration-300 hover:translate-x-1.5 after:absolute after:-bottom-0.5 after:left-0 after:h-0.5 after:w-0 after:bg-white after:transition-all after:duration-300 hover:after:w-full">
                     {l.label}
                   </Link>
                 </li>

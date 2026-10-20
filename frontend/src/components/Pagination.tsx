@@ -5,10 +5,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 interface BlogPaginationProps {
   currentPage: number;
   totalPages: number;
-  basePath?: string;
   onPageChange?: (page: number) => void;
-  queryString?: string;
 }
+
+const pill =
+  "flex h-9 min-w-9 items-center justify-center rounded-full border px-3 font-serif text-[12px] leading-3.75 tracking-[0.01em] uppercase transition-colors duration-200";
 
 export default function BlogPagination({
   currentPage,
@@ -35,48 +36,56 @@ export default function BlogPagination({
     return pages;
   };
 
-  const pages = getPages();
-
   return (
-    <div className="flex items-center justify-center gap-2">
-      {/* Previous */}
+    <nav aria-label="Pagination" className="flex items-center justify-center gap-1">
       <button
+        type="button"
         onClick={() => onPageChange?.(Math.max(1, currentPage - 1))}
         disabled={currentPage <= 1}
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-white/25 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+        aria-label="Previous page"
+        title="Previous page"
+        className={`${pill} border-white/20 text-white/70 hover:border-white hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/20 disabled:hover:text-white/70`}
       >
-        <ChevronLeft size={18} />
+        <ChevronLeft size={16} strokeWidth={1.75} />
       </button>
 
-      {/* Page numbers */}
-      {pages.map((page, i) =>
+      {getPages().map((page, i) =>
         page === "..." ? (
-          <span key={`e${i}`} className="flex h-10 w-10 items-center justify-center text-gray-500 text-sm">
-            ...
+          <span
+            key={`e${i}`}
+            aria-hidden
+            className="flex h-9 w-9 items-center justify-center font-serif text-[12px] leading-3.75 text-white/40"
+          >
+            …
           </span>
         ) : (
           <button
+            type="button"
             key={page}
             onClick={() => onPageChange?.(page)}
-            className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-all duration-200 ${
+            aria-current={page === currentPage ? "page" : undefined}
+            aria-label={`Page ${page}`}
+            className={`${pill} ${
               page === currentPage
-                ? "bg-white text-black"
-                : "border border-white/10 text-gray-400 hover:border-white/25 hover:text-white"
+                ? "border-white bg-white text-black"
+                : "border-white/20 text-white/70 hover:border-white hover:text-white"
             }`}
           >
             {page}
           </button>
-        )
+        ),
       )}
 
-      {/* Next */}
       <button
+        type="button"
         onClick={() => onPageChange?.(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage >= totalPages}
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-white/25 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+        aria-label="Next page"
+        title="Next page"
+        className={`${pill} border-white/20 text-white/70 hover:border-white hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/20 disabled:hover:text-white/70`}
       >
-        <ChevronRight size={18} />
+        <ChevronRight size={16} strokeWidth={1.75} />
       </button>
-    </div>
+    </nav>
   );
 }

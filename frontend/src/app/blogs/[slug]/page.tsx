@@ -6,9 +6,9 @@ import BlogPostClient from "./BlogPostClient";
 import BlogListClient from "@/app/BlogListClient";
 import Loader from "@/components/Loader";
 
-// TEMP: no cache for dev — restore 86400 before production
+// Dynamic on purpose: BlogListClient reads ?page= via useSearchParams, so a static
+// route would drop the listing from the HTML. The data itself comes from the 24h cache.
 export const revalidate = 0;
-export const dynamic = "force-dynamic";
 
 export const dynamicParams = true;
 

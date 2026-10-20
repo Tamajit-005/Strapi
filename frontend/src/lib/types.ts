@@ -21,17 +21,13 @@ export interface SanityImage {
 }
 
 export interface Author {
-  _id: string;
   name: string;
-  slug: string;
-  email?: string | null;
 }
 
 export interface Category {
   _id: string;
   name: string;
   slug: string;
-  description?: string | null;
 }
 
 export interface BlogPost {
@@ -45,32 +41,4 @@ export interface BlogPost {
   author?: Author | null;
   categories?: Category[] | null;
   cardColor?: string | null;
-}
-
-// Backwards-compat alias used during migration — will be removed in Phase 4
-export type ImageData = SanityImage;
-
-export interface PaginationMeta {
-  page: number;
-  pageSize: number;
-  pageCount: number;
-  total: number;
-}
-
-export interface BlogPostResponse {
-  data: BlogPost[];
-  meta?: {
-    pagination?: PaginationMeta;
-  };
-}
-
-export interface SingleBlogPostResponse {
-  data: BlogPost;
-}
-
-export interface CategoryResponse {
-  data: Category[];
-  meta?: {
-    pagination?: PaginationMeta;
-  };
 }

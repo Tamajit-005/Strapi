@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { PortableText } from "@portabletext/react";
 import type { BlogPost } from "@/lib/types";
 import { urlFor } from "@/sanity/image";
-import moment from "moment";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import { Plus, Check, Copy } from "lucide-react";
@@ -141,6 +140,7 @@ export default function BlogPostClient({ post }: Props) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
+      onClick={() => router.back()}
       className="fixed inset-0 z-40 overflow-y-auto bg-black/60 backdrop-blur-xl"
     >
       <div className="w-full px-4 pt-28 md:pt-32 pb-16">
@@ -149,6 +149,7 @@ export default function BlogPostClient({ post }: Props) {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          onClick={(e) => e.stopPropagation()}
           className="mx-auto w-full max-w-167.5 rounded-2xl"
           style={{ backgroundColor: color }}
         >
@@ -188,7 +189,13 @@ export default function BlogPostClient({ post }: Props) {
               {/* Meta */}
               <div className="uppercase text-xs mt-1 mb-1 flex flex-col gap-1 text-black/70 font-semibold tracking-wider">
                 {post.publishedAt && (
-                  <span suppressHydrationWarning>{moment(post.publishedAt).format("MMM D, YYYY")}</span>
+                  <span suppressHydrationWarning>
+                    {new Intl.DateTimeFormat("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    }).format(new Date(post.publishedAt))}
+                  </span>
                 )}
                 {post.author?.name && <span>By {post.author.name}</span>}
               </div>

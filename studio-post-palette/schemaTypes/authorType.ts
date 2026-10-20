@@ -25,13 +25,6 @@ export const authorType = defineType({
       description: 'Author email',
       validation: (rule) => rule.email(),
     }),
-    defineField({
-      name: 'auth0Id',
-      title: 'Auth0 ID',
-      type: 'string',
-      description: 'Links to Auth0/MongoDB user (e.g. auth0|xxx). Hidden from editors.',
-      hidden: true,
-    }),
   ],
   preview: {
     select: {

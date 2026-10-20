@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { connectMongo } from "./mongo";
 
-export interface IBlogColor extends Document {
+interface IBlogColor extends Document {
   slug: string;
   cardColor?: string;
 }

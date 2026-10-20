@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Menu, X } from "lucide-react";
-import { FaSearch, FaTimes } from "react-icons/fa";
 import { Anton } from "next/font/google";
+import SearchBar from "@/components/SearchBar";
 
 const wordmark = Anton({ weight: "400", subsets: ["latin"] });
 
@@ -16,18 +16,13 @@ const Navbar = () => {
   const [catOpen, setCatOpen] = useState(false);
 
   const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearchSubmit = () => {
     const q = searchQuery.trim();
-    if (q) router.push(`/search?query=${encodeURIComponent(q)}`);
+    if (!q) return;
+    router.push(`/search?query=${encodeURIComponent(q)}`);
     setSearchOpen(false);
   };
-
-  useEffect(() => {
-    if (searchOpen) setTimeout(() => inputRef.current?.focus(), 200);
-  }, [searchOpen]);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -51,17 +46,17 @@ const Navbar = () => {
 
   return (
     <>
-      <div className="fixed top-0 left-0 right-0 z-50 w-full px-3 pt-3 md:px-6 md:pt-4">
-        <header className="mx-auto max-w-7xl rounded-full bg-black/30 text-white backdrop-blur-xl supports-[backdrop-filter]:bg-black/30">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center h-14 md:h-16 px-4 md:px-6">
+      <div className="fixed top-5 left-0 right-0 z-50 w-full px-5">
+        <header className="w-full rounded-2xl bg-black/60 text-white backdrop-blur-md">
+          <div className="grid h-14 grid-cols-[1fr_auto_1fr] items-center px-5 md:h-17">
             {/* Left */}
-            <div className="flex items-center justify-start gap-1 md:gap-2">
+            <div className="flex items-center justify-start gap-2">
               <button
                 onClick={() => setCatOpen(!catOpen)}
                 aria-label={catOpen ? "Close categories" : "Open categories"}
                 className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-white/10"
               >
-                <span className="relative block h-[18px] w-[18px]">
+                <span className="relative block h-4.5 w-4.5">
                   <Menu
                     size={18}
                     className={`absolute inset-0 transition-all duration-300 ${catOpen ? "rotate-90 opacity-0" : "rotate-0 opacity-100"}`}
@@ -72,30 +67,38 @@ const Navbar = () => {
                   />
                 </span>
               </button>
-              <Link
-                href="/about"
-                className="text-[11px] md:text-xs font-bold uppercase tracking-[0.18em] opacity-70 transition-opacity hover:opacity-100"
-              >
-                Get to know us
-              </Link>
+              <div className="hidden items-center gap-8 lg:flex">
+                <Link
+                  href="/about"
+                  className="font-serif text-[16px] leading-4.75 font-medium tracking-[0.02em] uppercase transition-opacity hover:opacity-70"
+                >
+                  Get to know us
+                </Link>
+                <Link
+                  href="/contact"
+                  className="font-serif text-[16px] leading-4.75 font-medium tracking-[0.02em] uppercase transition-opacity hover:opacity-70"
+                >
+                  Contact us
+                </Link>
+              </div>
             </div>
 
             {/* Center wordmark */}
             <Link
               href="/"
-              className={`${wordmark.className} text-2xl md:text-4xl uppercase leading-none tracking-wide whitespace-nowrap`}
+              className={`${wordmark.className} text-[32px] uppercase leading-none tracking-wide whitespace-nowrap`}
             >
               Post Palette
             </Link>
 
             {/* Right */}
-            <div className="flex items-center justify-end gap-1 md:gap-2">
+            <div className="flex items-center justify-end gap-5">
               <button
                 onClick={() => setSearchOpen(true)}
                 aria-label="Search"
                 className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-white/10"
               >
-                <Search size={18} />
+                <Search size={20} />
               </button>
             </div>
           </div>
@@ -112,7 +115,7 @@ const Navbar = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setCatOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90]"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-90"
             />
             <motion.aside
               key="cat-drawer"
@@ -120,7 +123,7 @@ const Navbar = () => {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 34 }}
-              className="fixed top-0 left-0 bottom-0 z-[95] w-72 md:w-80 bg-zinc-950 border-r border-white/10 flex flex-col px-7 pt-24 pb-8"
+              className="fixed top-0 left-0 bottom-0 z-95 w-72 md:w-80 bg-zinc-950 border-r border-white/10 flex flex-col px-7 pt-24 pb-8"
             >
               <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/40 mb-6">
                 Categories
@@ -143,13 +146,22 @@ const Navbar = () => {
                   </motion.div>
                 ))}
               </nav>
-              <Link
-                href="/about"
-                onClick={() => setCatOpen(false)}
-                className="mt-auto text-[11px] font-bold uppercase tracking-[0.25em] text-white/40 hover:text-white transition-colors"
-              >
-                Get to know us
-              </Link>
+              <div className="mt-auto flex flex-col items-start gap-4">
+                <Link
+                  href="/contact"
+                  onClick={() => setCatOpen(false)}
+                  className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/40 hover:text-white transition-colors"
+                >
+                  Contact us
+                </Link>
+                <Link
+                  href="/about"
+                  onClick={() => setCatOpen(false)}
+                  className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/40 hover:text-white transition-colors"
+                >
+                  Get to know us
+                </Link>
+              </div>
             </motion.aside>
           </>
         )}
@@ -157,17 +169,32 @@ const Navbar = () => {
 
       <AnimatePresence>
         {searchOpen && (
-          <motion.div key="search-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/80 backdrop-blur-lg z-[100] flex items-start justify-center pt-32 px-4">
-            <button onClick={() => setSearchOpen(false)} className="absolute top-6 right-6 text-2xl text-white">
-              <FaTimes />
-            </button>
-            <motion.form onSubmit={handleSearchSubmit} initial={{ scale: 0.9, opacity: 0, y: -20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }} className="w-full max-w-2xl">
-              <div className="relative">
-                <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500" />
-                <input ref={inputRef} type="text" placeholder="Search blogs..." value={searchQuery} autoFocus onChange={(e) => setSearchQuery(e.target.value)} className="w-full p-5 pl-12 text-xl rounded-full bg-zinc-900 text-white border border-white/10 focus:outline-none focus:border-white/25 outline-none" />
-              </div>
-            </motion.form>
-          </motion.div>
+          <>
+            <motion.div
+              key="search-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSearchOpen(false)}
+              className="fixed inset-0 z-100 bg-black/60 backdrop-blur-xl"
+            />
+            <motion.div
+              key="search-panel"
+              initial={{ opacity: 0, scale: 0.6, x: 48, y: -16 }}
+              animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+              exit={{ opacity: 0, scale: 0.6, x: 48, y: -16 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              style={{ transformOrigin: "top right" }}
+              className="fixed top-5 right-5 z-101 w-[calc(100%-2.5rem)] max-w-155"
+            >
+              <SearchBar
+                value={searchQuery}
+                onChange={setSearchQuery}
+                onSubmit={handleSearchSubmit}
+                autoFocus
+              />
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>

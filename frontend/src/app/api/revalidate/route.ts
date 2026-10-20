@@ -1,4 +1,4 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { clearBuildCache, getAllCategories } from "@/lib/buildCache";
 
@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
   const categorySlugs = (body?.entry?.categories ?? []) as string[];
 
   clearBuildCache();
+  revalidateTag("posts");
+  revalidateTag("categories");
 
   const allCategories = await getAllCategories();
 

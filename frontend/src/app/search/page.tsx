@@ -1,14 +1,18 @@
 import React, { Suspense } from "react";
-import SearchClient from "./SearchClient";
+import PostBrowser from "@/components/PostBrowser";
 import Loader from "@/components/Loader";
-import { getAllPosts } from "@/lib/buildCache";
-import type { BlogPost } from "@/lib/types";
+import { getAllPosts, getAllCategories } from "@/lib/buildCache";
+import type { BlogPost, Category } from "@/lib/types";
 
-export const revalidate = 0; // TEMP: no cache for dev
-export const dynamic = "force-dynamic";
+// Stays dynamic: the server render must reflect ?query= so the HTML matches the results.
+// The data itself is served from the 24h in-memory build cache, so this costs no Sanity call.
+export const revalidate = 0;
 
 export default async function SearchPage() {
-  const allPosts: BlogPost[] = await getAllPosts();
+  const [allPosts, categories]: [BlogPost[], Category[]] = await Promise.all([
+    getAllPosts(),
+    getAllCategories(),
+  ]);
 
   return (
     <Suspense
@@ -18,7 +22,7 @@ export default async function SearchPage() {
         </div>
       }
     >
-      <SearchClient allPosts={allPosts} />
+      <PostBrowser title="Search for" posts={allPosts} categories={categories} filter />
     </Suspense>
   );
 }

@@ -7,11 +7,14 @@ import {
   getPostsByCategory,
 } from "@/lib/buildCache";
 import type { BlogPost, Category } from "@/lib/types";
-import CategoryClient from "./CategoryClient";
+import PostBrowser from "@/components/PostBrowser";
 import Loader from "@/components/Loader";
 
-export const revalidate = 0; // TEMP: no cache for dev
-export const dynamic = "force-dynamic";
+// Dynamic on purpose: PostBrowser reads the URL via useSearchParams, so a static
+// route would drop the cards from the HTML. The data itself comes from the 24h cache.
+export const revalidate = 0;
+
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   const [, categories] = await Promise.all([getAllPosts(), getAllCategories()]);
@@ -25,17 +28,13 @@ export default async function CategoryPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  await Promise.all([getAllPosts(), getAllCategories()]);
+  const [, categories]: [BlogPost[], Category[]] = await Promise.all([
+    getAllPosts(),
+    getAllCategories(),
+  ]);
 
   const cat = getCategoryBySlug(slug);
   if (!cat) notFound();
-
-  const category: Category = {
-    _id: cat._id,
-    name: cat.name,
-    slug: cat.slug,
-    description: cat.description ?? null,
-  };
 
   const blogs: BlogPost[] = getPostsByCategory(slug)
     .slice()
@@ -50,7 +49,12 @@ export default async function CategoryPage({
         </div>
       }
     >
-      <CategoryClient initialCategory={category} initialBlogs={blogs} slug={slug} />
+      <PostBrowser
+        title={cat.name}
+        posts={blogs}
+        categories={categories}
+        showSearch={false}
+      />
     </Suspense>
   );
 }
