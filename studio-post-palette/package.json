@@ -16,6 +16,7 @@
   ],
   "dependencies": {
     "@sanity/client": "^8.4.0",
+    "@sanity/icons": "^5.2.3",
     "@sanity/vision": "^6.20.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

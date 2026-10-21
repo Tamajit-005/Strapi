@@ -70,6 +70,9 @@ export default function Curtain() {
       const target = measure(flyer.current);
       if (!target) {
         document.documentElement.classList.add("intro-done");
+        // Nothing to fly to: still start the navbar so it does not sit below
+        // the fold for the parked animation's 2.6s delay.
+        notifyIntro();
         setMarker(false);
         setBackdrop(false);
         return;

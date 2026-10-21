@@ -17,6 +17,10 @@ export default async function BlogPostPage({
 }) {
   const { slug } = await params;
 
+  // getAllPosts fills the slug cache and the cardColor enrichment; read it
+  // after, or a cold instance serves a raw post without its color.
+  const allPosts: BlogPost[] = await getAllPosts();
+
   let post: BlogPost | undefined = getPostBySlug(slug);
 
   if (!post) {
@@ -24,8 +28,6 @@ export default async function BlogPostPage({
     if (!fetched) notFound();
     post = fetched;
   }
-
-  const allPosts: BlogPost[] = await getAllPosts();
 
   return (
     <>

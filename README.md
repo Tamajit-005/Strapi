@@ -19,7 +19,7 @@ cd frontend && cp .env.example .env   # fill in the values
 npm run dev
 
 # studio — http://localhost:3333
-cd studio-post-palette && npm run dev
+cd ../studio-post-palette && npm run dev
 ```
 
 Environment variables are documented in [`frontend/README.md`](frontend/README.md) and listed in [`frontend/.env.example`](frontend/.env.example).
