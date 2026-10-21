@@ -2,8 +2,22 @@
 
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import { FaTwitter, FaGithub, FaInstagram } from "react-icons/fa";
+import { FaInstagram, FaGithub, FaLinkedin, FaXTwitter } from "react-icons/fa6";
 import { motion } from "framer-motion";
+
+/* Reference sans (Neue Montreal) is proprietary — closest system stack. */
+const TITLE_FONT = "font-[Helvetica_Neue,Helvetica,Arial,sans-serif]";
+const LABEL = "font-serif text-[12px] leading-3.75 tracking-[0.01em] uppercase text-white/50";
+
+const socials = [
+  { label: "Instagram", href: "https://www.instagram.com/tamajit005/", Icon: FaInstagram },
+  { label: "GitHub", href: "https://github.com/Tamajit-005", Icon: FaGithub },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/tamajit05", Icon: FaLinkedin },
+  { label: "Twitter", href: "https://x.com/tamajitsaha05", Icon: FaXTwitter },
+];
+
+const field =
+  "mt-2 w-full rounded-[18px] border border-white/25 bg-transparent text-[17px] text-white outline-none transition-colors duration-200 placeholder:text-white/35 hover:border-white/50 focus:border-white";
 
 export default function ContactPage() {
   const [name, setName] = useState("");
@@ -29,15 +43,15 @@ export default function ContactPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to send message");
+        throw new Error(data.error || "Failed to send message.");
       }
 
-      toast.success("Message sent successfully!");
+      toast.success("Message sent.");
       setName("");
       setEmail("");
       setMessage("");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to send message!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send message.");
     } finally {
       setLoading(false);
     }
@@ -45,106 +59,127 @@ export default function ContactPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="w-full min-h-screen bg-slate-950 text-gray-300 py-12 px-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="w-full min-h-screen bg-black text-white"
     >
-      <div className="max-w-3xl mx-auto bg-gray-900 rounded-lg shadow-lg p-6 md:p-10">
-        <h1 className="text-4xl font-bold text-teal-500 mb-6 text-center">
-          Contact Us
-        </h1>
-
-        <p className="text-gray-400 mb-8 text-center">
-          Have a question or want to collaborate? Fill out the form below or
-          email us at{" "}
-          <a
-            href="mailto:tamajitsaha05@gmail.com"
-            className="text-teal-400 underline hover:text-teal-300 transition"
-          >
-            tamajitsaha05@gmail.com
-          </a>
-          .
-        </p>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <input
-            type="text"
-            placeholder="Your Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            minLength={2}
-            maxLength={100}
-            className="p-3 rounded-md bg-slate-800 text-gray-100 placeholder-gray-500 
-              focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
-          />
-
-          <input
-            type="email"
-            placeholder="Your Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="p-3 rounded-md bg-slate-800 text-gray-100 placeholder-gray-500 
-              focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
-          />
-
-          <textarea
-            placeholder="Your Message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            required
-            minLength={10}
-            maxLength={5000}
-            rows={5}
-            className="p-3 rounded-md bg-slate-800 text-gray-100 placeholder-gray-500 
-              focus:outline-none focus:ring-2 focus:ring-teal-500 transition resize-vertical"
-          />
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-teal-600 hover:bg-teal-500 text-white font-medium px-6 py-3 rounded-md 
-              transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Sending..." : "Send Message"}
-          </button>
-        </form>
-
-        <div className="mt-10 text-center">
-          <h2 className="text-xl font-semibold mb-3 text-teal-400">
-            Follow us:
-          </h2>
-
-          <div className="flex justify-center gap-6">
-            <a
-              href="https://x.com/tamajitsaha05"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-teal-400 transition"
+      <div className="mx-auto w-full max-w-360 px-5 pt-0 pb-10 md:px-10 md:pt-8.75 md:pb-14">
+        {/* Hero */}
+        <header className="mb-15 grid gap-x-10 gap-y-8 md:grid-cols-2 md:items-end">
+          <div>
+            <p className={LABEL}>Contact</p>
+            <h1
+              className={`${TITLE_FONT} mt-4 text-[35px] leading-8.25 font-bold tracking-[-0.02em] uppercase md:text-[50px] md:leading-11.75 md:tracking-[-1px]`}
             >
-              <FaTwitter size={22} />
-            </a>
-
-            <a
-              href="https://github.com/Tamajit-005"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-teal-400 transition"
-            >
-              <FaGithub size={22} />
-            </a>
-
-            <a
-              href="https://www.instagram.com/tamajit005/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-teal-400 transition"
-            >
-              <FaInstagram size={22} />
-            </a>
+              Contact us
+            </h1>
           </div>
+          <p className="max-w-155 text-[18px] leading-7 text-white/70">
+            Have a question or want to collaborate? Send a note below, or email us directly. We
+            read every message.
+          </p>
+        </header>
+
+        <div className="grid gap-x-10 gap-y-12 md:grid-cols-[1fr_1.4fr]">
+          {/* Direct contact + socials */}
+          <aside>
+            <p className={LABEL}>Email</p>
+            <p
+              className={`${TITLE_FONT} mt-3 inline-block text-[20px] leading-6 font-semibold tracking-[-0.01em] break-all text-white md:text-[24px] md:leading-7`}
+            >
+              tamajitsaha05@gmail.com
+            </p>
+
+            <p className={`${LABEL} mt-12`}>Follow</p>
+            <div className="mt-4 border-t border-white/15">
+              {socials.map(({ label, href, Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 border-b border-white/15 py-3.5 transition-colors duration-200 hover:text-white/60"
+                >
+                  <Icon size={18} />
+                  <span className="font-serif text-[12px] leading-3.75 tracking-[0.01em] uppercase">
+                    {label}
+                  </span>
+                </a>
+              ))}
+            </div>
+          </aside>
+
+          {/* Form */}
+          <form
+            onSubmit={handleSubmit}
+            aria-busy={loading}
+            className="rounded-2xl border border-white/15 bg-white/3 p-6 md:p-8"
+          >
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label htmlFor="name" className={LABEL}>
+                  Name
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  required
+                  minLength={2}
+                  maxLength={100}
+                  className={`${field} h-14 px-3.5`}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="email" className={LABEL}>
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  className={`${field} h-14 px-3.5`}
+                />
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <label htmlFor="message" className={LABEL}>
+                Message
+              </label>
+              <textarea
+                id="message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="What would you like to talk about?"
+                required
+                minLength={10}
+                maxLength={5000}
+                rows={7}
+                className={`${field} resize-vertical p-4`}
+              />
+            </div>
+
+            <div className="mt-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+              <p className="font-serif text-[12px] leading-3.75 tracking-[0.01em] text-white/40 uppercase">
+                All fields required
+              </p>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex h-11 items-center justify-center rounded-full bg-white px-6 font-serif text-[13px] leading-3.75 tracking-[0.01em] text-black uppercase transition-colors duration-200 hover:bg-white/80 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {loading ? "Sending..." : "Send message"}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </motion.div>

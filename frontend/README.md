@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Post Palette — Frontend
 
-## Getting Started
+Next.js 15 (App Router) frontend for **Post Palette**. Content comes from Sanity, card colors from a MongoDB collection, and the site is styled with Tailwind CSS v4.
 
-First, run the development server:
+## Stack
+
+- Next.js 15 · React 18 · TypeScript
+- Tailwind CSS v4
+- Sanity (`next-sanity`) + a Sanity Studio in `../studio-post-palette` (Sanity 6.20, React 19)
+- MongoDB (mongoose) — per-post card colors
+- Framer Motion, `lucide-react` and `react-icons` for icons and motion
+
+## Scripts
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev     # dev server on http://localhost:3000
+npm run build   # production build
+npm start       # serve the production build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Copy `.env.example` to `.env` and fill in the values.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Used for |
+| --- | --- |
+| `NEXT_PUBLIC_SANITY_PROJECT_ID` | Sanity project id (falls back to the baked-in default) |
+| `NEXT_PUBLIC_SANITY_DATASET` | Sanity dataset (falls back to the baked-in default) |
+| `NEXT_PUBLIC_PAGE_LIMIT` | Posts per page on listings, search and category pages (default 10) |
+| `MONGODB_URI` | MongoDB connection for card colors |
+| `RESEND_API_KEY`, `ADMIN_EMAIL` | Contact form delivery |
+| `REVALIDATE_SECRET` | Secret for the revalidate webhook |
+| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID` | CDN cache purge on revalidate |
 
-## Learn More
+`NEXT_PUBLIC_*` values are inlined at build time — rebuild after changing them.
 
-To learn more about Next.js, take a look at the following resources:
+## Routes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Route | File |
+| --- | --- |
+| `/` | `src/app/page.tsx` — latest posts |
+| `/blogs/[slug]` | `src/app/blogs/[slug]/page.tsx` |
+| `/category/[slug]` | `src/app/category/[slug]/page.tsx` |
+| `/search` | `src/app/search/page.tsx` — `?query=&page=` |
+| `/about`, `/contact` | `src/app/about`, `src/app/contact` |
+| `POST /api/contact` | Contact form submission |
+| `POST /api/revalidate?secret=…` | Sanity webhook: clears the build cache, revalidates pages, purges Cloudflare |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Structure
 
-## Deploy on Vercel
+```
+src/app        routes (pages, API handlers) + global CSS
+src/components Navbar, Footer, PostBrowser, SearchBar, Pagination, CategoryPills, Loader
+src/lib        Sanity queries, in-memory build cache, Mongo connection + model, types
+src/sanity     client + image URL builder
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Caching:** content comes from a 5-minute in-memory cache (`src/lib/buildCache.ts`) over Next's Data Cache (24h, tagged `posts`/`categories`). The routes stay dynamic (`revalidate = 0`) because the listing reads the URL, so the served HTML always matches the request — a static route would drop the cards from the HTML.
+- `POST /api/revalidate` clears the in-memory cache, invalidates the `posts`/`categories` tags, revalidates the routes and purges Cloudflare. Point the Sanity webhook at it.

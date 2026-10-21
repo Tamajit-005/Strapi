@@ -1,80 +1,44 @@
-// Image interface 
-export interface ImageData {
-  url: string;
-  alternativeText?: string | null;
-  caption?: string | null;
-  width?: number | null;
-  height?: number | null;
-  formats?: Record<string, { url: string; width: number; height: number }>;
+import type { PortableTextBlock } from "next-sanity";
+
+export interface SanityImage {
+  asset: {
+    _ref: string;
+    _type: "reference";
+  };
+  alt?: string | null;
+  hotspot?: {
+    x: number;
+    y: number;
+    height: number;
+    width: number;
+  } | null;
+  crop?: {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+  } | null;
 }
 
-// Author interface 
 export interface Author {
   name: string;
-  email?: string | null;
 }
 
-// Writer interface
-export interface Writer {
-  username: string;
-  email?: string | null;
-}
-
-// Category interface
 export interface Category {
-  documentId: string; 
+  _id: string;
   name: string;
-  slug?: string;
-  description?: string | null;
+  slug: string;
 }
 
-// Blog post interface 
 export interface BlogPost {
-  documentId: string;
+  _id: string;
   title: string;
-  slug?: string;
-  description?: string;
-  content?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  publishedAt?: string;
-  cover?: ImageData;
+  slug: string;
+  description?: string | null;
+  body?: PortableTextBlock[] | null;
+  publishedAt: string;
+  image?: SanityImage | null;
   author?: Author | null;
-  writer?: Writer | null;
-  category?: Category[];
-}
-
-// For creating a post (client-side)
-export interface UserBlogPostData {
-  title: string;
-  slug?: string;
-  description?: string;
-  content?: string;
-}
-
-// Pagination (if added later to GraphQL)
-export interface PaginationMeta {
-  page: number;
-  pageSize: number;
-  pageCount: number;
-  total: number;
-}
-
-// Generic API response types (for consistency)
-export interface BlogPostResponse {
-  data: BlogPost[];
-  meta?: {
-    pagination?: PaginationMeta;
-  };
-}
-
-export interface SingleBlogPostResponse {
-  data: BlogPost;
-}
-
-export interface CategoryResponse {
-  data: Category[];
-  meta?: {
-    pagination?: PaginationMeta;
-  };
+  categories?: Category[] | null;
+  cardColor?: string | null;
 }
