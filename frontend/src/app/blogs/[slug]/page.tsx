@@ -1,25 +1,14 @@
 import { notFound } from "next/navigation";
-import { client } from "@/lib/apolloClient";
-import {
-  GET_POST_BY_DOCUMENT_ID,
-  type GetPostByDocumentIdResult,
-} from "@/lib/queries";
-import { getAllPosts, getPostById } from "@/lib/buildCache";
+import { Suspense } from "react";
+import { getAllPosts, getPostBySlug, getPostBySlugFetch } from "@/lib/buildCache";
 import type { BlogPost } from "@/lib/types";
 import BlogPostClient from "./BlogPostClient";
+import BlogListClient from "@/app/BlogListClient";
+import Loader from "@/components/Loader";
 
-// ISR fallback window — webhook handles instant updates
-export const revalidate = 86400; // 24 hours
-
-// Allow new posts (published after last build) to be rendered on first visit
-export const dynamicParams = true;
-
-// Pre-render all known posts at build time for best performance and SEO
-
-export async function generateStaticParams() {
-  const posts = await getAllPosts();
-  return posts.map((p) => ({ slug: p.documentId }));
-}
+// Dynamic on purpose: BlogListClient reads ?page= via useSearchParams, so a static
+// route would drop the listing from the HTML. The data itself comes from the 24h cache.
+export const revalidate = 0;
 
 export default async function BlogPostPage({
   params,
@@ -28,42 +17,26 @@ export default async function BlogPostPage({
 }) {
   const { slug } = await params;
 
-  // Build-time: cache hit → 0 Strapi calls
-  // Runtime cold-start: cache miss → fallback fetch below
-  let post: BlogPost | undefined = getPostById(slug);
+  // getAllPosts fills the slug cache and the cardColor enrichment; read it
+  // after, or a cold instance serves a raw post without its color.
+  const allPosts: BlogPost[] = await getAllPosts();
+
+  let post: BlogPost | undefined = getPostBySlug(slug);
 
   if (!post) {
-    const { data } = await client.query<GetPostByDocumentIdResult>({
-      query: GET_POST_BY_DOCUMENT_ID,
-      variables: { documentId: slug },
-      fetchPolicy: "no-cache",
-    });
-
-    if (!data?.blog) notFound();
-
-    const blog = data.blog;
-
-    post = {
-      documentId: slug,
-      title: blog.title,
-      slug: blog.slug ?? undefined,
-      description: blog.description ?? undefined,
-      content: blog.content ?? undefined,
-      createdAt: blog.createdAt ?? undefined,
-      updatedAt: blog.updatedAt ?? undefined,
-      cover: blog.cover?.url ? { url: blog.cover.url } : undefined,
-      author: blog.author
-        ? { name: blog.author.name, email: blog.author.email ?? undefined }
-        : undefined,
-      writer: blog.writer
-        ? {
-            username: blog.writer.username,
-            email: blog.writer.email ?? undefined,
-          }
-        : undefined,
-      category: blog.category ?? undefined,
-    };
+    const fetched = await getPostBySlugFetch(slug);
+    if (!fetched) notFound();
+    post = fetched;
   }
 
-  return <BlogPostClient post={post} />;
+  return (
+    <>
+      {/* Homepage listing behind the overlay (auto-scroll frozen) */}
+      <Suspense fallback={<div className="w-full flex items-center justify-center min-h-screen bg-black"><Loader /></div>}>
+        <BlogListClient initialPosts={allPosts} disableAutoScroll />
+      </Suspense>
+      {/* Translucent article overlay */}
+      <BlogPostClient post={post} />
+    </>
+  );
 }

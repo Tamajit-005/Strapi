@@ -1,121 +1,94 @@
 import Link from "next/link";
-import { FaTwitter, FaGithub, FaInstagram } from "react-icons/fa";
-import Image from "next/image";
+import { Anton } from "next/font/google";
+import { FaInstagram, FaGithub, FaLinkedin, FaXTwitter } from "react-icons/fa6";
+
+const wordmark = Anton({ weight: "400", subsets: ["latin"] });
+
+const socialLinks = [
+  { label: "Instagram", href: "https://www.instagram.com/tamajit005", Icon: FaInstagram },
+  { label: "GitHub", href: "https://github.com/Tamajit-005", Icon: FaGithub },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/tamajit05", Icon: FaLinkedin },
+  { label: "Twitter", href: "https://x.com/tamajitsaha05", Icon: FaXTwitter },
+];
+
+const categories = [
+  { label: "Lifestyle", slug: "lifestyle" },
+  { label: "Tech", slug: "tech" },
+  { label: "Food", slug: "food" },
+  { label: "Nature", slug: "nature" },
+  { label: "Culture", slug: "culture" },
+  { label: "Entertainment", slug: "entertainment" },
+];
+
+const quickLinks = [
+  { label: "Home", href: "/" },
+  { label: "Blogs", href: "/" },
+  { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
+];
 
 export default function Footer() {
-  // Use exact slugs and documentIds from your Strapi output
-  const categories = [
-    { label: "Gaming", slug: "gaming", documentId: "zxhivhcsvvo4bwsv8lrijpop" },
-    { label: "Tech", slug: "tech", documentId: "icchgazsjbhc07ogtzksx6dq" },
-    { label: "Food", slug: "food", documentId: "o5d6wlqkmmea2nkp17ziea7z" },
-    { label: "Nature", slug: "nature", documentId: "kaigx15rehooagdlsb2q9x9k" },
-    {
-      label: "Culture",
-      slug: "culture",
-      documentId: "h1oaqs7skpgwx42u765xqrc2",
-    },
-    {
-      label: "Entertainment",
-      slug: "entertainment",
-      documentId: "ynv7oa1i6v09tx54w7pfyrze",
-    },
-  ];
-
   return (
-    <footer className="bg-[#0f111a] text-gray-300 py-10 border-t border-gray-800">
-      <div className="max-w-5xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Logo and Info */}
+    <footer className="w-full px-5 md:px-10 bg-black text-white">
+      <div className="flex flex-col md:flex-row md:justify-between gap-y-10 mt-15 md:mt-20 mb-25">
+        {/* Left — logo + socials */}
         <div>
-          <Link href="/">
-            <Image
-              src="/images/Logo.png"
-              alt="Logo"
-              width={200}
-              height={50}
-              className="h-12 w-auto md:h-13"
-              priority
-            />
+          <Link href="/" className={`${wordmark.className} inline-block origin-left text-5xl md:text-7xl uppercase leading-none tracking-wide transition-transform duration-300 hover:scale-103`}>
+            Post Palette
           </Link>
-          <p className="mt-2 text-sm text-gray-400">
-            Your go-to Strapi & WebDev blog.
-          </p>
-        </div>
-
-        {/* Quick Links */}
-        <div>
-          <h2 className="font-semibold text-white mb-2">Quick Links</h2>
-          <ul className="flex flex-col gap-1">
-            <li>
-              <Link href="/" className="hover:text-teal-400 transition">
-                Blogs
-              </Link>
-            </li>
-            <li>
-              <Link href="/about" className="hover:text-teal-400 transition">
-                About
-              </Link>
-            </li>
-            <li>
-              <Link href="/contact" className="hover:text-teal-400 transition">
-                Contact
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        {/* Categories */}
-        <div>
-          <h2 className="font-semibold text-white mb-2">Categories</h2>
-          <ul className="flex flex-col gap-1">
-            {categories.map((c) => (
-              <li key={c.documentId}>
-                <Link
-                  href={`/category/${encodeURIComponent(c.documentId)}`}
-                  className="hover:text-teal-400 transition"
-                  prefetch={false}
-                >
-                  {c.label}
-                </Link>
-              </li>
+          <div className="mt-6 flex items-center gap-4">
+            {socialLinks.map(({ label, href, Icon }) => (
+              <a
+                key={label}
+                href={href}
+                aria-label={label}
+                target="_blank"
+                rel="noreferrer"
+                className="text-white/60 transition-colors duration-200 hover:text-white"
+              >
+                <Icon size={22} />
+              </a>
             ))}
-          </ul>
-        </div>
-
-        {/* Social Links */}
-        <div>
-          <h2 className="font-semibold text-white mb-2">Follow Us</h2>
-          <div className="flex gap-4">
-            <a
-              href="https://x.com/tamajitsaha05"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-teal-400 transition"
-            >
-              <FaTwitter size={20} />
-            </a>
-            <a
-              href="https://github.com/Tamajit-005"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-teal-400 transition"
-            >
-              <FaGithub size={20} />
-            </a>
-            <a
-              href="https://www.instagram.com/tamajit005/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-teal-400 transition"
-            >
-              <FaInstagram size={20} />
-            </a>
           </div>
         </div>
-      </div>
 
-      {/* Bottom */}
-      <div className="mt-8 text-center text-gray-500 text-sm">
-        © {new Date().getFullYear()} POST PALETTE. All rights reserved.
+        {/* Right — two parts */}
+        <div className="flex gap-16 md:gap-24">
+          {/* Left part — categories */}
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-white/50 mb-5">
+              Categories
+            </p>
+            <ul className="flex flex-col gap-2.5">
+              {categories.map((c) => (
+                <li key={c.slug}>
+                  <Link
+                    href={`/category/${encodeURIComponent(c.slug)}`}
+                    className="relative w-fit text-lg md:text-xl font-semibold uppercase tracking-wider transition-transform duration-300 hover:translate-x-1.5 after:absolute after:-bottom-0.5 after:left-0 after:h-0.5 after:w-0 after:bg-white after:transition-all after:duration-300 hover:after:w-full"
+                  >
+                    {c.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Right part — quick links */}
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-white/50 mb-5">
+              Quick links
+            </p>
+            <ul className="flex flex-col gap-2.5">
+              {quickLinks.map((l) => (
+                <li key={l.label}>
+                  <Link href={l.href} className="relative w-fit text-lg md:text-xl font-semibold uppercase tracking-wider transition-transform duration-300 hover:translate-x-1.5 after:absolute after:-bottom-0.5 after:left-0 after:h-0.5 after:w-0 after:bg-white after:transition-all after:duration-300 hover:after:w-full">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
     </footer>
   );

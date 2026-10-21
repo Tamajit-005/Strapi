@@ -1,228 +1,210 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { FaSearch, FaTimes, FaBars } from "react-icons/fa";
-import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
+import { Search, Menu, X } from "lucide-react";
+import SearchBar from "@/components/SearchBar";
+import { useNavigate, subscribeIntro } from "@/lib/loaderBus";
+import { wordmark } from "@/lib/fonts";
 
 const Navbar = () => {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [catOpen, setCatOpen] = useState(false);
 
-  const inputRef = useRef<HTMLInputElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const router = useRouter();
+  const { push } = useNavigate();
 
-  const categories = [
-    { label: "Gaming", documentId: "zxhivhcsvvo4bwsv8lrijpop" },
-    { label: "Tech", documentId: "icchgazsjbhc07ogtzksx6dq" },
-    { label: "Food", documentId: "o5d6wlqkmmea2nkp17ziea7z" },
-    { label: "Nature", documentId: "kaigx15rehooagdlsb2q9x9k" },
-    { label: "Culture", documentId: "h1oaqs7skpgwx42u765xqrc2" },
-    { label: "Entertainment", documentId: "ynv7oa1i6v09tx54w7pfyrze" },
-  ];
+  // The intro curtain starts the reveal: slide the header in with it.
+  useEffect(
+    () =>
+      subscribeIntro(() => {
+        document.documentElement.classList.add("intro-running");
+      }),
+    []
+  );
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearchSubmit = () => {
     const q = searchQuery.trim();
-    if (q) {
-      router.push(`/search?query=${encodeURIComponent(q)}`);
-    }
+    if (!q) return;
+    push(`/search?query=${encodeURIComponent(q)}`);
     setSearchOpen(false);
-    setMenuOpen(false);
   };
 
-  // Focus input when search opens
   useEffect(() => {
-    if (searchOpen) {
-      setTimeout(() => inputRef.current?.focus(), 200);
-    }
-  }, [searchOpen]);
-
-  // ESC closes search
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSearchOpen(false);
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSearchOpen(false);
+        setCatOpen(false);
+      }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
   }, []);
 
-  // Prevent both menu and search open
-  const openSearch = () => {
-    setMenuOpen(false);
-    setSearchOpen(true);
-  };
+  const categories = [
+    { label: "Lifestyle", slug: "lifestyle" },
+    { label: "Tech", slug: "tech" },
+    { label: "Food", slug: "food" },
+    { label: "Nature", slug: "nature" },
+    { label: "Culture", slug: "culture" },
+    { label: "Entertainment", slug: "entertainment" },
+  ];
 
   return (
-    <header className="bg-[#0f111a] text-white sticky top-0 z-50 shadow-md">
-      <div className="max-w-5xl mx-auto flex items-center justify-between p-4">
-        {/* Logo */}
-        <Link href="/" onClick={() => setDropdownOpen(false)}>
-          <Image
-            src="/images/Logo.png"
-            alt="Logo"
-            width={200}
-            height={50}
-            className="h-12 w-auto md:h-16"
-            priority
-          />
-        </Link>
-
-        {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-6 font-medium">
-          <Link
-            href="/"
-            className="hover:text-teal-400 transition-colors"
-            onClick={() => setDropdownOpen(false)}
-          >
-            Blogs
-          </Link>
-
-          {/* Categories */}
-          <div
-            className="relative cursor-pointer"
-            onMouseEnter={() => {
-              if (timeoutRef.current) clearTimeout(timeoutRef.current);
-              setDropdownOpen(true);
-            }}
-            onMouseLeave={() => {
-              timeoutRef.current = setTimeout(
-                () => setDropdownOpen(false),
-                200,
-              );
-            }}
-          >
-            <button className="hover:text-teal-400 transition-colors">
-              Categories
-            </button>
-
-            <AnimatePresence>
-              {dropdownOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="absolute left-0 mt-2 bg-[#1a1c29] border border-gray-700 rounded-lg shadow-lg w-44 z-50"
+    <>
+      <div className="navbar-intro fixed top-5 left-0 right-0 z-50 w-full px-5">
+        <header className="w-full rounded-2xl bg-black/60 text-white backdrop-blur-md">
+          <div className="grid h-14 grid-cols-[1fr_auto_1fr] items-center px-5 md:h-17">
+            {/* Left */}
+            <div className="flex items-center justify-start gap-2">
+              <button
+                onClick={() => setCatOpen(!catOpen)}
+                aria-label={catOpen ? "Close categories" : "Open categories"}
+                className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-white/10"
+              >
+                <span className="relative block h-4.5 w-4.5">
+                  <Menu
+                    size={18}
+                    className={`absolute inset-0 transition-all duration-300 ${catOpen ? "rotate-90 opacity-0" : "rotate-0 opacity-100"}`}
+                  />
+                  <X
+                    size={18}
+                    className={`absolute inset-0 transition-all duration-300 ${catOpen ? "rotate-0 opacity-100" : "-rotate-90 opacity-0"}`}
+                  />
+                </span>
+              </button>
+              <div className="hidden items-center gap-8 lg:flex">
+                <Link
+                  href="/about"
+                  className="font-serif text-[16px] leading-4.75 font-medium tracking-[0.02em] uppercase transition-opacity hover:opacity-70"
                 >
-                  <ul className="py-2 text-sm">
-                    {categories.map((c) => (
-                      <li key={c.documentId}>
-                        <Link
-                          href={`/category/${encodeURIComponent(c.documentId)}`}
-                          className="block px-4 py-2 hover:bg-teal-700"
-                          onClick={() => setDropdownOpen(false)}
-                        >
-                          {c.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  Get to know us
+                </Link>
+                <Link
+                  href="/contact"
+                  className="font-serif text-[16px] leading-4.75 font-medium tracking-[0.02em] uppercase transition-opacity hover:opacity-70"
+                >
+                  Contact us
+                </Link>
+              </div>
+            </div>
+
+            {/* Center wordmark */}
+            <Link
+              href="/"
+              className={`navbar-wordmark ${wordmark.className} text-[32px] uppercase leading-none tracking-wide whitespace-nowrap transition-opacity duration-200`}
+            >
+              Post Palette
+            </Link>
+
+            {/* Right */}
+            <div className="flex items-center justify-end gap-5">
+              <button
+                onClick={() => setSearchOpen(true)}
+                aria-label="Search"
+                className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-white/10"
+              >
+                <Search size={20} />
+              </button>
+            </div>
           </div>
-
-          {/* Search */}
-          <button onClick={openSearch} className="text-xl hover:text-teal-400">
-            <FaSearch />
-          </button>
-        </nav>
-
-        {/* Mobile Right Controls */}
-        <div className="md:hidden flex items-center gap-4 text-xl">
-          <button
-            onClick={openSearch}
-            className="hover:text-teal-400 transition-colors"
-            aria-label="Open Search"
-          >
-            <FaSearch />
-          </button>
-
-          <button
-            onClick={() => {
-              setSearchOpen(false);
-              setMenuOpen((prev) => !prev);
-            }}
-            aria-label="Toggle Menu"
-          >
-            {menuOpen ? <FaTimes /> : <FaBars />}
-          </button>
-        </div>
+        </header>
       </div>
 
-      {/* MOBILE MENU */}
+      {/* Category drawer sliding in from the left */}
       <AnimatePresence>
-        {menuOpen && (
-          <motion.div
-            key="mobile-menu"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.25 }}
-            className="md:hidden absolute top-full left-0 w-full bg-[#0f111a] px-4 pb-4 flex flex-col gap-3 shadow-lg z-50"
-          >
-            <div className="flex flex-col gap-1 mt-2">
-              <span className="text-gray-400 text-sm uppercase">
+        {catOpen && (
+          <>
+            <motion.div
+              key="cat-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setCatOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-90"
+            />
+            <motion.aside
+              key="cat-drawer"
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 34 }}
+              className="fixed top-0 left-0 bottom-0 z-95 w-72 md:w-80 bg-zinc-950 border-r border-white/10 flex flex-col px-7 pt-24 pb-8"
+            >
+              <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/40 mb-6">
                 Categories
-              </span>
-              {categories.map((c) => (
+              </p>
+              <nav className="flex flex-col gap-1">
+                {categories.map((c, i) => (
+                  <motion.div
+                    key={c.slug}
+                    initial={{ opacity: 0, x: -24 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.08 + i * 0.05, duration: 0.3 }}
+                  >
+                    <Link
+                      href={`/category/${encodeURIComponent(c.slug)}`}
+                      onClick={() => setCatOpen(false)}
+                      className={`${wordmark.className} block text-3xl md:text-4xl uppercase leading-tight text-white/80 hover:text-white hover:translate-x-2 transition-all duration-200`}
+                    >
+                      {c.label}
+                    </Link>
+                  </motion.div>
+                ))}
+              </nav>
+              <div className="mt-auto flex flex-col items-start gap-4">
                 <Link
-                  key={c.documentId}
-                  href={`/category/${encodeURIComponent(c.documentId)}`}
-                  className="hover:text-teal-400 pl-2"
-                  onClick={() => setMenuOpen(false)}
+                  href="/contact"
+                  onClick={() => setCatOpen(false)}
+                  className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/40 hover:text-white transition-colors"
                 >
-                  {c.label}
+                  Contact us
                 </Link>
-              ))}
-            </div>
-          </motion.div>
+                <Link
+                  href="/about"
+                  onClick={() => setCatOpen(false)}
+                  className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/40 hover:text-white transition-colors"
+                >
+                  Get to know us
+                </Link>
+              </div>
+            </motion.aside>
+          </>
         )}
       </AnimatePresence>
 
-      {/* FULLSCREEN SEARCH */}
       <AnimatePresence>
         {searchOpen && (
-          <motion.div
-            key="search-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-lg z-100 flex items-start justify-center pt-32 px-4"
-          >
-            <button
+          <>
+            <motion.div
+              key="search-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setSearchOpen(false)}
-              className="absolute top-6 right-6 text-2xl"
+              className="fixed inset-0 z-100 bg-black/60 backdrop-blur-xl"
+            />
+            <motion.div
+              key="search-panel"
+              initial={{ opacity: 0, scale: 0.6, x: 48, y: -16 }}
+              animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+              exit={{ opacity: 0, scale: 0.6, x: 48, y: -16 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              style={{ transformOrigin: "top right" }}
+              className="fixed top-5 right-5 z-101 w-[calc(100%-2.5rem)] max-w-155"
             >
-              <FaTimes />
-            </button>
-
-            <motion.form
-              onSubmit={handleSearchSubmit}
-              initial={{ scale: 0.9, opacity: 0, y: -20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full max-w-2xl"
-            >
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="Search blogs..."
+              <SearchBar
                 value={searchQuery}
+                onChange={setSearchQuery}
+                onSubmit={handleSearchSubmit}
                 autoFocus
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full p-5 text-xl rounded-xl bg-gray-900 text-white focus:ring-2 focus:ring-teal-500"
               />
-            </motion.form>
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
-    </header>
+    </>
   );
 };
 

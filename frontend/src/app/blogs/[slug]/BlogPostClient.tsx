@@ -1,250 +1,230 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkBreaks from "remark-breaks";
-import rehypeRaw from "rehype-raw";
+import { PortableText } from "@portabletext/react";
 import type { BlogPost } from "@/lib/types";
-import moment from "moment";
+import { urlFor } from "@/sanity/image";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
+import { Plus, Check, Copy } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Oswald } from "next/font/google";
 
-const handleCopyCode = async (code: string) => {
-  try {
-    await navigator.clipboard.writeText(code);
-    toast.success("Code copied!");
-  } catch {
-    toast.error("Copy failed");
-  }
-};
-
-function buildAssetUrl(path?: string) {
-  if (!path) return undefined;
-  if (/^https?:\/\//i.test(path)) return path;
-  return `${process.env.NEXT_PUBLIC_STRAPI_URL}${path}`;
-}
+const titleFont = Oswald({ weight: "600", subsets: ["latin"] });
 
 interface Props {
   post: BlogPost;
 }
 
-// Data is pre-fetched server-side — this component handles only rendering
+function CodeBlock({ value }: any) {
+  const [copied, setCopied] = useState(false);
+  const raw: unknown = value?.code;
+  const text = typeof raw === "string" ? raw : raw != null ? String(raw) : "";
+
+  const doCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success("Copied!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Copy failed");
+    }
+  };
+
+  return (
+    <div className="relative group my-6">
+      <pre
+        className="bg-black/10 rounded-lg p-4 pr-12 overflow-x-auto cursor-pointer transition-colors"
+        onClick={doCopy}
+        title="Tap to copy"
+      >
+        <code className="text-black text-sm block whitespace-pre font-mono">{text}</code>
+      </pre>
+      <button
+        onClick={doCopy}
+        aria-label="Copy code"
+        title={copied ? "Copied!" : "Tap to copy"}
+        className="absolute top-2 right-2 p-2 rounded-md bg-black/10 hover:bg-black/20 text-black transition-colors"
+      >
+        {copied ? <Check size={16} /> : <Copy size={16} />}
+      </button>
+    </div>
+  );
+}
+
 export default function BlogPostClient({ post }: Props) {
   const router = useRouter();
-  const coverUrl = buildAssetUrl(post.cover?.url);
+  const coverUrl = post.image ? urlFor(post.image).width(1000).url() : undefined;
+  const color = post.cardColor || "#EB4F2F";
+
+  /* Lock background scroll while the overlay is open */
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  const portableComponents = {
+    block: {
+      h1: ({ children }: any) => (
+        <h1 className={`${titleFont.className} text-3xl uppercase leading-[0.95] text-black mt-8 mb-3`}>{children}</h1>
+      ),
+      h2: ({ children }: any) => (
+        <h2 className={`${titleFont.className} text-2xl uppercase leading-none text-black mt-7 mb-3`}>{children}</h2>
+      ),
+      h3: ({ children }: any) => (
+        <h3 className={`${titleFont.className} text-xl uppercase text-black mt-6 mb-2`}>{children}</h3>
+      ),
+      h4: ({ children }: any) => <h4 className="text-lg font-bold text-black mt-5 mb-2">{children}</h4>,
+      h5: ({ children }: any) => <h5 className="text-base font-bold text-black mt-4 mb-2">{children}</h5>,
+      h6: ({ children }: any) => <h6 className="text-sm font-bold text-black mt-4 mb-2">{children}</h6>,
+      normal: ({ children }: any) => <p className="text-black/85 leading-relaxed my-3.5 text-[15px]">{children}</p>,
+      blockquote: ({ children }: any) => (
+        <blockquote className="border-l-4 border-black pl-4 ml-2 italic text-black/70 my-4">
+          {children}
+        </blockquote>
+      ),
+    },
+    list: {
+      bullet: ({ children }: any) => (
+        <ul className="list-disc list-inside my-4 pl-2 text-black/85 space-y-1">{children}</ul>
+      ),
+      number: ({ children }: any) => (
+        <ol className="list-decimal list-inside my-4 pl-2 text-black/85 space-y-1">{children}</ol>
+      ),
+    },
+    listItem: {
+      bullet: ({ children }: any) => <li className="ml-2">{children}</li>,
+      number: ({ children }: any) => <li className="ml-2">{children}</li>,
+    },
+    marks: {
+      code: ({ children }: any) => (
+        <code className="bg-black/10 text-black px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>
+      ),
+      strong: ({ children }: any) => <strong className="font-bold text-black">{children}</strong>,
+      em: ({ children }: any) => <em className="italic">{children}</em>,
+      underline: ({ children }: any) => <u className="underline">{children}</u>,
+      link: ({ children, value }: any) => (
+        <a
+          href={value?.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-black font-semibold underline underline-offset-4 decoration-2 hover:opacity-70 transition-opacity"
+        >
+          {children}↗
+        </a>
+      ),
+    },
+    types: {
+      image: ({ value }: any) => {
+        if (!value?.asset) return null;
+        return (
+          <img
+            src={urlFor(value).width(800).url()}
+            alt={value.alt || ""}
+            title={value.alt || undefined}
+            className="rounded-xl w-full my-4 object-cover"
+            loading="lazy"
+          />
+        );
+      },
+      code: CodeBlock,
+    },
+  };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="w-full min-h-screen bg-slate-950 text-gray-200"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      onClick={() => router.back()}
+      className="fixed inset-0 z-40 overflow-y-auto bg-black/60 backdrop-blur-xl"
     >
-      <div className="max-w-3xl mx-auto p-6 pb-20">
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
+      <div className="w-full px-4 pt-28 md:pt-32 pb-16">
+        {/* ── Article card ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-4xl leading-15 text-center font-bold text-teal-400 capitalize"
+          onClick={(e) => e.stopPropagation()}
+          className="mx-auto w-full max-w-167.5 rounded-2xl"
+          style={{ backgroundColor: color }}
         >
-          {post.title}
-        </motion.h1>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="w-full flex items-center justify-center font-light text-gray-400 mt-1"
-        >
-          {post.createdAt
-            ? `Published ${moment(post.createdAt).fromNow()}`
-            : ""}
-        </motion.div>
-
-        {post.category && post.category.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="flex flex-wrap space-x-2 my-4 justify-center"
-          >
-            {post.category.map(({ name, documentId }) => (
-              <span
-                key={documentId}
-                className="border border-teal-800 text-teal-300 px-2 py-1 text-sm rounded bg-teal-950/40 font-medium"
-              >
-                {name}
-              </span>
-            ))}
-          </motion.div>
-        )}
-
-        {coverUrl && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="relative h-72 w-full my-6"
-          >
-            <img
-              src={coverUrl}
-              alt={post.title}
-              className="rounded-lg w-full h-full object-cover"
-            />
-          </motion.div>
-        )}
-
-        {post.description && (
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-            className="text-gray-400 leading-8 tracking-wide italic mt-2 mb-6 text-center"
-          >
-            {post.description}
-          </motion.p>
-        )}
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="prose prose-invert max-w-none leading-relaxed"
-        >
-          <Markdown
-            remarkPlugins={[remarkGfm, remarkBreaks]}
-            rehypePlugins={[rehypeRaw]}
-            components={{
-              h1: ({ children }) => (
-                <h1 className="text-3xl font-bold text-teal-400 mt-10 mb-4 border-b border-teal-800 pb-2">
-                  {children}
+          <div className="p-3 sm:p-8">
+            {/* Title + close */}
+            <header className="flex flex-col gap-y-3.5 mb-10">
+              <div className="flex justify-between gap-x-3.5">
+                <h1 className={`${titleFont.className} text-4xl xl:text-5xl uppercase leading-[0.95] text-black text-ellipsis overflow-hidden`}>
+                  {post.title}
                 </h1>
-              ),
-              h2: ({ children }) => (
-                <h2 className="text-2xl font-semibold text-teal-300 mt-8 mb-3">
-                  {children}
-                </h2>
-              ),
-              h3: ({ children }) => (
-                <h3 className="text-xl font-medium text-teal-200 mt-6 mb-2">
-                  {children}
-                </h3>
-              ),
-              h4: ({ children }) => (
-                <h4 className="text-lg font-medium text-teal-100 mt-4 mb-2">
-                  {children}
-                </h4>
-              ),
-              p: ({ children }) => (
-                <p className="text-gray-300 leading-relaxed my-3">{children}</p>
-              ),
-              ul: ({ children }) => (
-                <ul className="list-disc list-inside my-4 pl-2 text-gray-300 space-y-1">
-                  {children}
-                </ul>
-              ),
-              ol: ({ children }) => (
-                <ol className="list-decimal list-inside my-4 pl-2 text-gray-300 space-y-1">
-                  {children}
-                </ol>
-              ),
-              li: ({ children }) => <li className="ml-2">{children}</li>,
-              blockquote: ({ children }) => (
-                <blockquote className="border-l-4 border-teal-500 pl-4 ml-2 italic text-gray-400 my-4">
-                  {children}
-                </blockquote>
-              ),
-              u: ({ children }) => (
-                <u className="underline decoration-teal-500">{children}</u>
-              ),
-              pre: ({ children }) => (
-                <pre
-                  className="bg-slate-900 border border-slate-800 rounded-lg p-4 my-4 overflow-x-auto cursor-pointer relative group"
-                  onClick={(e) => handleCopyCode(e.currentTarget.innerText)}
+                <button
+                  onClick={() => router.back()}
+                  aria-label="Close article"
+                  title="Close"
+                  className="rotate-45 shrink-0 flex items-center justify-center w-9 h-9 text-black hover:opacity-60 transition-opacity"
                 >
-                  {children}
-                </pre>
-              ),
-              code: ({ children, className }) => {
-                const isInline = !className;
-                if (isInline) {
-                  return (
-                    <code className="text-teal-300 px-1.5 py-0.5 rounded text-sm">
-                      {children}
-                    </code>
-                  );
-                }
-                return (
-                  <code className="text-teal-300 text-sm block whitespace-pre">
-                    {children}
-                  </code>
-                );
-              },
-              img: ({ src, alt, className }) => {
-                if (!src) return null;
-                const fullUrl = buildAssetUrl(
-                  typeof src === "string" ? src : undefined,
-                );
-                return (
-                  <img
-                    src={fullUrl}
-                    alt={alt || "Blog image"}
-                    className={
-                      className ||
-                      "rounded-lg w-full my-4 object-cover max-h-125"
-                    }
-                    loading="lazy"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                  />
-                );
-              },
-            }}
-          >
-            {post.content || ""}
-          </Markdown>
-        </motion.div>
+                  <span className="flex items-center justify-center w-9 h-9 border border-current border-solid rounded-full">
+                    <Plus size={20} />
+                  </span>
+                </button>
+              </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="flex flex-col items-center justify-center text-gray-400 font-light mb-6 mt-10 text-sm"
-        >
-          {(post.author?.name || post.writer?.username) && (
-            <p>
-              Written by{" "}
-              <span className="font-medium text-teal-300">
-                {post.author?.name || post.writer?.username}
-              </span>{" "}
-              — {moment(post.createdAt).fromNow()}
-            </p>
-          )}
+              {/* Category pills */}
+              {post.categories && post.categories.length > 0 && (
+                <div className="flex gap-x-1 gap-y-2 flex-wrap">
+                  {post.categories.map((cat) => (
+                    <span
+                      key={cat._id}
+                      className="inline-block text-[11px] font-normal px-4 py-2 rounded-full uppercase tracking-[0.14em] text-black border border-black"
+                    >
+                      {cat.name}
+                    </span>
+                  ))}
+                </div>
+              )}
 
-          {(post.author?.email || post.writer?.email) && (
-            <p className="text-gray-400 mt-1">
-              Contact:{" "}
-              <span className="font-medium text-teal-500">
-                {post.author?.email || post.writer?.email}
-              </span>
-            </p>
-          )}
-        </motion.div>
+              {/* Meta */}
+              <div className="uppercase text-xs mt-1 mb-1 flex flex-col gap-1 text-black/70 font-semibold tracking-wider">
+                {post.publishedAt && (
+                  <span suppressHydrationWarning>
+                    {new Intl.DateTimeFormat("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    }).format(new Date(post.publishedAt))}
+                  </span>
+                )}
+                {post.author?.name && <span>By {post.author.name}</span>}
+              </div>
+            </header>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.55 }}
-          className="w-full flex justify-center mt-8"
-        >
-          <button
-            onClick={() => router.back()}
-            className="text-teal-500 font-medium hover:underline"
-          >
-            ← Back to Blogs
-          </button>
+            {/* Hero image */}
+            {coverUrl && (
+              <div className="relative w-full aspect-square overflow-hidden rounded-xl">
+                <img
+                  src={coverUrl}
+                  alt={post.image?.alt || ""}
+                  title={post.image?.alt || undefined}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+            )}
+
+            {/* Description */}
+            {post.description && (
+              <p className="text-black/85 leading-relaxed mt-6 mb-2 text-base font-semibold">
+                {post.description}
+              </p>
+            )}
+
+            {/* Body */}
+            <div className="w-full leading-relaxed">
+              {post.body ? <PortableText value={post.body} components={portableComponents as any} /> : null}
+            </div>
+          </div>
         </motion.div>
       </div>
     </motion.div>

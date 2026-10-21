@@ -1,27 +1,28 @@
 import React, { Suspense } from "react";
-import SearchClient from "./SearchClient";
+import PostBrowser from "@/components/PostBrowser";
 import Loader from "@/components/Loader";
-import { getAllPosts } from "@/lib/buildCache";
-import type { BlogPost } from "@/lib/types";
+import { getAllPosts, getAllCategories } from "@/lib/buildCache";
+import type { BlogPost, Category } from "@/lib/types";
 
-// Rebuild this static page at most once per hour (ISR fallback)
-// Webhook revalidation handles instant updates when posts change
-export const revalidate = 86400; // 24 hours
-
-// Force static rendering (important for CDN + ISR)
+// Stays dynamic: the server render must reflect ?query= so the HTML matches the results.
+// The data itself is served from the 24h in-memory build cache, so this costs no Sanity call.
+export const revalidate = 0;
 
 export default async function SearchPage() {
-  const allPosts: BlogPost[] = await getAllPosts();
+  const [allPosts, categories]: [BlogPost[], Category[]] = await Promise.all([
+    getAllPosts(),
+    getAllCategories(),
+  ]);
 
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="min-h-screen flex items-center justify-center bg-black">
           <Loader />
         </div>
       }
     >
-      <SearchClient allPosts={allPosts} />
+      <PostBrowser title="Search for" posts={allPosts} categories={categories} filter />
     </Suspense>
   );
 }
