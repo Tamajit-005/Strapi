@@ -2,25 +2,32 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Menu, X } from "lucide-react";
-import { Anton } from "next/font/google";
 import SearchBar from "@/components/SearchBar";
-
-const wordmark = Anton({ weight: "400", subsets: ["latin"] });
+import { useNavigate, subscribeIntro } from "@/lib/loaderBus";
+import { wordmark } from "@/lib/fonts";
 
 const Navbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [catOpen, setCatOpen] = useState(false);
 
-  const router = useRouter();
+  const { push } = useNavigate();
+
+  // The intro curtain starts the reveal: slide the header in with it.
+  useEffect(
+    () =>
+      subscribeIntro(() => {
+        document.documentElement.classList.add("intro-running");
+      }),
+    []
+  );
 
   const handleSearchSubmit = () => {
     const q = searchQuery.trim();
     if (!q) return;
-    router.push(`/search?query=${encodeURIComponent(q)}`);
+    push(`/search?query=${encodeURIComponent(q)}`);
     setSearchOpen(false);
   };
 
@@ -46,7 +53,7 @@ const Navbar = () => {
 
   return (
     <>
-      <div className="fixed top-5 left-0 right-0 z-50 w-full px-5">
+      <div className="navbar-intro fixed top-5 left-0 right-0 z-50 w-full px-5">
         <header className="w-full rounded-2xl bg-black/60 text-white backdrop-blur-md">
           <div className="grid h-14 grid-cols-[1fr_auto_1fr] items-center px-5 md:h-17">
             {/* Left */}
@@ -86,7 +93,7 @@ const Navbar = () => {
             {/* Center wordmark */}
             <Link
               href="/"
-              className={`${wordmark.className} text-[32px] uppercase leading-none tracking-wide whitespace-nowrap`}
+              className={`navbar-wordmark ${wordmark.className} text-[32px] uppercase leading-none tracking-wide whitespace-nowrap transition-opacity duration-200`}
             >
               Post Palette
             </Link>

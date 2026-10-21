@@ -10,13 +10,6 @@ import Loader from "@/components/Loader";
 // route would drop the listing from the HTML. The data itself comes from the 24h cache.
 export const revalidate = 0;
 
-export const dynamicParams = true;
-
-export async function generateStaticParams() {
-  const posts = await getAllPosts();
-  return posts.map((p) => ({ slug: p.slug }));
-}
-
 export default async function BlogPostPage({
   params,
 }: {

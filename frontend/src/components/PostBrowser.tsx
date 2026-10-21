@@ -9,6 +9,7 @@ import BlogPagination from "@/components/Pagination";
 import SearchBar from "@/components/SearchBar";
 import type { BlogPost, Category } from "@/lib/types";
 import { urlFor } from "@/sanity/image";
+import { useNavigate } from "@/lib/loaderBus";
 
 const TITLE_FONT = "font-[Helvetica_Neue,Helvetica,Arial,sans-serif]";
 
@@ -86,6 +87,7 @@ export default function PostBrowser({
   showSearch = true,
 }: Props) {
   const router = useRouter();
+  const { push, replace } = useNavigate();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const urlQuery = filter ? (searchParams.get("query") || "").trim() : "";
@@ -121,13 +123,13 @@ export default function PostBrowser({
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(page));
-    router.replace(`${pathname}?${params.toString()}`);
+    replace(`${pathname}?${params.toString()}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleSubmit = () => {
     const q = searchValue.trim();
-    router.push(q ? `/search?query=${encodeURIComponent(q)}` : "/search");
+    push(q ? `/search?query=${encodeURIComponent(q)}` : "/search");
   };
 
   return (

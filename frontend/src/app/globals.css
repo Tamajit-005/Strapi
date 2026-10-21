@@ -16,7 +16,6 @@
 }
 
 html { overflow-x: hidden; }
-html[data-scroll-behavior="smooth"] { scroll-behavior: smooth; }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; margin: 4px; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
@@ -32,5 +31,50 @@ html[data-scroll-behavior="smooth"] { scroll-behavior: smooth; }
     @apply text-gray-100;
     background: #000000;
     overflow-x: hidden;
+  }
+}
+
+/* Intro: the big wordmark flies into the header's wordmark while the header
+   rises. Runs once per session — the layout's inline script sets `intro`
+   only on the first page load, and the curtain is hidden outright on a
+   reload so nothing flashes. */
+html.js:not(.intro):not(.intro-done) .curtain {
+  display: none;
+}
+
+html.js.intro .navbar-intro {
+  transform: translateY(100vh);
+  animation: navbar-in 0.85s cubic-bezier(0.45, 0, 0.2, 1) 2.6s forwards;
+}
+html.js.intro-running .navbar-intro {
+  animation-delay: 0s;
+}
+@keyframes navbar-in {
+  from { transform: translateY(100vh); }
+  to { transform: translateY(0); }
+}
+
+/* The flying wordmark lands exactly on this one, so it stays hidden until
+   the handover at the end of the flight. */
+html.js.intro:not(.intro-done) .navbar-wordmark {
+  opacity: 0;
+}
+
+/* No JavaScript: the curtain lifts itself and the header is never parked. */
+.curtain-fallback {
+  animation: curtain-fallback-out 0.5s ease 1.2s forwards;
+}
+@keyframes curtain-fallback-out {
+  to { opacity: 0; visibility: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.js.intro .navbar-intro {
+    transform: none;
+    animation: none;
+  }
+  .curtain-fallback {
+    animation-duration: 0.2s;
+    animation-delay: 0.6s;
   }
 }
